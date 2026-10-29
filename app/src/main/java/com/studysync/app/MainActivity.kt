@@ -38,9 +38,12 @@ class MainActivity : AppCompatActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StudySyncScreen(userId: String,
-                    userEmail: String,
-                    onSignOut: () -> Unit) {
+fun StudySyncScreen(
+    userId: String,
+    userEmail: String,
+    biometricLock: BiometricLock,
+    onSignOut: () -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -151,6 +154,8 @@ fun StudySyncScreen(userId: String,
                             error = saveError,
                             message = saveMessage,
                             accountEmail = userEmail,
+                            userId = userId,
+                            biometricLock = biometricLock,
                             onSettingsChange = { updated ->
                                 if (!savingSettings &&
                                     updated != currentSettings

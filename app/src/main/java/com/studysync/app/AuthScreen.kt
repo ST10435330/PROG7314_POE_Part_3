@@ -25,13 +25,24 @@ import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun AuthScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val biometricLock = remember(context) {
+        BiometricLock(context)
+    }
+
+    val activity = remember(context) {
+        context.findBiometricActivity()
+    }
+
     val auth = remember { FirebaseAuth.getInstance() }
+
     val credentialManager = remember(context) {
         CredentialManager.create(context)
     }
@@ -40,8 +51,29 @@ fun AuthScreen() {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    DisposableEffect(auth) {
+    // Clear in-memory unlock permission whenever the activity stops.
+    // Reference: https://developer.android.com/guide/components/activities/activity-lifecycle
+    DisposableEffect(activity, biometricLock) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                biometricLock.lock()
+            }
+        }
+
+        activity?.lifecycle?.addObserver(observer)
+
+        onDispose {
+            activity?.lifecycle?.removeObserver(observer)
+            biometricLock.lock()
+        }
+    }
+
+    DisposableEffect(auth, biometricLock) {
         val listener = FirebaseAuth.AuthStateListener {
+            if (user?.uid != it.currentUser?.uid) {
+                biometricLock.lock()
+            }
+
             user = it.currentUser
         }
 
@@ -49,6 +81,39 @@ fun AuthScreen() {
 
         onDispose {
             auth.removeAuthStateListener(listener)
+        }
+    }
+
+    // Shared by normal sign-out and Google recovery from the lock screen.
+    val signOut: () -> Unit = {
+        if (!busy) {
+            busy = true
+            error = null
+
+            biometricLock.lock()
+            auth.signOut()
+            user = null
+
+            scope.launch {
+                try {
+                    credentialManager.clearCredentialState(
+                        ClearCredentialStateRequest()
+                    )
+
+                    Log.d("StudySync", "Signed out")
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    // Firebase is already signed out.
+                    Log.w(
+                        "StudySync",
+                        "Could not clear credential provider state",
+                        exception
+                    )
+                } finally {
+                    busy = false
+                }
+            }
         }
     }
 
@@ -65,11 +130,12 @@ fun AuthScreen() {
 
                     scope.launch {
                         try {
-                            val googleOption = GetSignInWithGoogleOption.Builder(
-                                serverClientId = context.getString(
-                                    R.string.default_web_client_id
-                                )
-                            ).build()
+                            val googleOption =
+                                GetSignInWithGoogleOption.Builder(
+                                    serverClientId = context.getString(
+                                        R.string.default_web_client_id
+                                    )
+                                ).build()
 
                             val request = GetCredentialRequest.Builder()
                                 .addCredentialOption(googleOption)
@@ -106,6 +172,14 @@ fun AuthScreen() {
                                 .signInWithCredential(firebaseCredential)
                                 .await()
 
+                            // Recovery requires fresh Google sign-in.
+                            // A cached Firebase session never resets the lock.
+                            val verifiedUser = checkNotNull(result.user)
+
+                            biometricLock.resetAfterGoogleSignIn(
+                                verifiedUser.uid
+                            )
+
                             Log.d(
                                 "StudySync",
                                 if (result.additionalUserInfo?.isNewUser == true) {
@@ -117,7 +191,7 @@ fun AuthScreen() {
                         } catch (exception: CancellationException) {
                             throw exception
                         } catch (exception: GetCredentialCancellationException) {
-                            // Closing the account chooser keeps the user signed out.
+                            // Cancelling the chooser keeps the user signed out.
                             error = null
                         } catch (exception: NoCredentialException) {
                             error =
@@ -142,42 +216,25 @@ fun AuthScreen() {
                 }
             }
         )
+    } else if (
+        biometricLock.isEnabled(signedInUser.uid) &&
+        biometricLock.unlockedUserId != signedInUser.uid
+    ) {
+        key(signedInUser.uid) {
+            BiometricLockScreen(
+                userId = signedInUser.uid,
+                biometricLock = biometricLock,
+                onUseGoogle = signOut
+            )
+        }
     } else {
         // Discard the previous user's screen state when accounts change.
         key(signedInUser.uid) {
             StudySyncScreen(
                 userId = signedInUser.uid,
                 userEmail = signedInUser.email.orEmpty(),
-                onSignOut = {
-                    if (!busy) {
-                        busy = true
-                        error = null
-
-                        auth.signOut()
-                        user = null
-
-                        scope.launch {
-                            try {
-                                credentialManager.clearCredentialState(
-                                    ClearCredentialStateRequest()
-                                )
-
-                                Log.d("StudySync", "Signed out")
-                            } catch (exception: CancellationException) {
-                                throw exception
-                            } catch (exception: Exception) {
-                                // Firebase is already signed out.
-                                Log.w(
-                                    "StudySync",
-                                    "Could not clear credential provider state",
-                                    exception
-                                )
-                            } finally {
-                                busy = false
-                            }
-                        }
-                    }
-                }
+                biometricLock = biometricLock,
+                onSignOut = signOut
             )
         }
     }

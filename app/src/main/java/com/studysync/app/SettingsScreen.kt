@@ -14,6 +14,8 @@ fun SettingsScreen(
     saving: Boolean,
     error: String?,
     message: String?,
+    userId: String,
+    biometricLock: BiometricLock,
     onSettingsChange: (AppSettings) -> Unit,
     accountEmail: String = ""
 ) {
@@ -31,6 +33,13 @@ fun SettingsScreen(
         if (accountEmail.isNotBlank()) {
             Text("Signed in as $accountEmail")
         }
+
+        BiometricSettings(
+            userId = userId,
+            biometricLock = biometricLock
+        )
+
+        HorizontalDivider()
 
         Text("Choose how you organise your study tasks.")
 

@@ -1,4 +1,5 @@
 import express from "express";
+import { installSyncRoutes } from "./sync.js";
 import {
   ApiError,
   subjectInput,
@@ -172,6 +173,8 @@ export function createApp({ auth, db }) {
         : record(kind, ref.id, data);
     });
   }
+
+  installSyncRoutes(app, db);
 
   for (const kind of ["subjects", "tasks"]) {
     app.get(`/api/${kind}`, async (req, res) => {

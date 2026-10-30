@@ -58,7 +58,6 @@ export function installSyncRoutes(app, db) {
         return receipt.data().result;
       }
 
-      // Share the revision used by existing writes.
       const user = await transaction.get(userRef);
 
       let result = null;
@@ -149,7 +148,6 @@ export function installSyncRoutes(app, db) {
 
     app.delete(`/api/${kind}/:id`, async (req, res, next) => {
       if (req.get("X-Operation-Id") === undefined) {
-        // Preserve the existing behaviour for the Part 2 client.
         return next();
       }
 

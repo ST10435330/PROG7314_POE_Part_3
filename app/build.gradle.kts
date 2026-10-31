@@ -18,6 +18,9 @@ android {
     }
 
     buildFeatures { compose = true }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -50,4 +53,7 @@ dependencies {
     //Biometric Prompt and its compatible activity framework
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.biometric:biometric:1.1.0")
+
+    // Run Android SQLite tests
+    testImplementation("org.robolectric:robolectric:4.16.1")
 }

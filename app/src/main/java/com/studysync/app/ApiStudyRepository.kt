@@ -3,6 +3,7 @@ package com.studysync.app
 import android.util.Log
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
 import com.google.gson.JsonParseException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
@@ -10,7 +11,11 @@ import org.json.JSONObject
 import retrofit2.Response
 import java.io.IOException
 
-class ApiException(message: String) : Exception(message)
+class ApiException(
+    message: String,
+    val statusCode: Int? = null,
+    val retryable: Boolean = false
+) : Exception(message)
 
 fun apiErrorMessage(
     exception: Exception,
@@ -26,8 +31,19 @@ fun apiErrorMessage(
 
 class ApiStudyRepository(
     private val userId: String,
-    private val api: StudyApi = StudyApiClient.service
+    private val api: StudyApi = StudyApiClient.service,
+    private val currentUserId: () -> String? = {
+        FirebaseAuth.getInstance().currentUser?.uid
+    },
+    private val tokenProvider: suspend (Boolean) -> String? = { forceRefresh ->
+        FirebaseAuth.getInstance().currentUser
+            ?.takeIf { it.uid == userId }
+            ?.getIdToken(forceRefresh)
+            ?.await()
+            ?.token
+    }
 ) : StudyRepository {
+    private val gson = Gson()
 
     override suspend fun getSubjects(): List<Subject> {
         return body { api.getSubjects(it) }
@@ -82,30 +98,137 @@ class ApiStudyRepository(
         }
     }
 
-    private suspend fun authorization(forceRefresh: Boolean): String {
-        val auth = FirebaseAuth.getInstance()
-        val user = auth.currentUser
+    /**
+     * Sends an immutable outbox operation.
+     * The sync worker will acknowledge it after successful completion.
+     */
+    suspend fun upload(change: PendingStudyChange) {
+        require(change.kind in listOf("subjects", "tasks")) {
+            "Unknown record type."
+        }
 
-        if (user == null || user.uid != userId) {
-            throw ApiException("Please sign in again.")
+        require(change.method in listOf("PUT", "DELETE")) {
+            "Unknown change method."
+        }
+
+        val validId = Regex("[A-Za-z0-9_-]{1,128}")
+
+        require(
+            change.recordId.matches(validId) &&
+                    change.operationId.matches(validId)
+        ) {
+            "Invalid saved change ID."
+        }
+
+        if (change.method == "DELETE") {
+            require(change.payload == null) {
+                "A deletion cannot contain a payload."
+            }
+
+            execute { authorization ->
+                if (change.kind == "subjects") {
+                    api.deleteSubject(
+                        authorization,
+                        change.recordId,
+                        change.operationId
+                    )
+                } else {
+                    api.deleteTask(
+                        authorization,
+                        change.recordId,
+                        change.operationId
+                    )
+                }
+            }
+        } else if (change.kind == "subjects") {
+            val subject = gson.fromJson(
+                checkNotNull(change.payload),
+                Subject::class.java
+            )
+
+            require(subject.subjectId == change.recordId) {
+                "Subject ID does not match."
+            }
+
+            val saved = body { authorization ->
+                api.putSubject(
+                    authorization,
+                    change.recordId,
+                    change.operationId,
+                    subject.toRequest()
+                )
+            }
+
+            if (saved.subjectId != change.recordId) {
+                throw ApiException(
+                    "The API returned a different subject ID.",
+                    retryable = true
+                )
+            }
+        } else {
+            val task = gson.fromJson(
+                checkNotNull(change.payload),
+                StudyTask::class.java
+            )
+
+            require(task.taskId == change.recordId) {
+                "Task ID does not match."
+            }
+
+            val saved = body { authorization ->
+                api.putTask(
+                    authorization,
+                    change.recordId,
+                    change.operationId,
+                    task.toRequest()
+                )
+            }
+
+            if (saved.taskId != change.recordId) {
+                throw ApiException(
+                    "The API returned a different task ID.",
+                    retryable = true
+                )
+            }
+        }
+    }
+
+    private suspend fun authorization(
+        forceRefresh: Boolean
+    ): String {
+        if (currentUserId() != userId) {
+            throw ApiException(
+                "Please sign in again.",
+                statusCode = 401
+            )
         }
 
         val token = try {
-            user.getIdToken(forceRefresh).await().token
+            tokenProvider(forceRefresh)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: FirebaseNetworkException) {
             throw ApiException(
-                "Could not refresh your session. Check your internet connection."
+                "Could not refresh your session. Check your internet connection.",
+                retryable = true
+            )
+        } catch (exception: IOException) {
+            throw ApiException(
+                "Your session could not be refreshed. Try again later.",
+                retryable = true
             )
         } catch (exception: Exception) {
             throw ApiException(
-                "Your session could not be verified. Sign out and sign in again."
+                "Your session could not be verified. Sign out and sign in again.",
+                statusCode = 401
             )
         }
 
-        if (auth.currentUser?.uid != userId || token.isNullOrBlank()) {
-            throw ApiException("Please sign in again.")
+        if (currentUserId() != userId || token.isNullOrBlank()) {
+            throw ApiException(
+                "Please sign in again.",
+                statusCode = 401
+            )
         }
 
         return "Bearer $token"
@@ -115,30 +238,51 @@ class ApiStudyRepository(
         request: suspend (String) -> Response<T>
     ): T {
         return execute(request).body()
-            ?: throw ApiException("The API returned an empty response.")
+            ?: throw ApiException(
+                "The API returned an empty response.",
+                retryable = true
+            )
     }
 
     private suspend fun <T> execute(
         request: suspend (String) -> Response<T>
     ): Response<T> {
         try {
-            var response = request(authorization(forceRefresh = false))
+            var response = request(
+                authorization(forceRefresh = false)
+            )
 
             // A rejected token means the protected operation did not execute.
             if (response.code() == 401) {
                 response.errorBody()?.close()
-                response = request(authorization(forceRefresh = true))
+
+                response = request(
+                    authorization(forceRefresh = true)
+                )
             }
 
-            if (FirebaseAuth.getInstance().currentUser?.uid != userId) {
+            if (currentUserId() != userId) {
                 response.errorBody()?.close()
-                throw ApiException("Your account changed. Please sign in again.")
+
+                throw ApiException(
+                    "Your account changed. Please sign in again.",
+                    statusCode = 401
+                )
             }
 
-            Log.d("StudySync", "API response: ${response.code()}")
+            Log.d(
+                "StudySync",
+                "API response: ${response.code()}"
+            )
 
             if (!response.isSuccessful) {
-                throw ApiException(responseMessage(response))
+                throw ApiException(
+                    responseMessage(response),
+                    statusCode = response.code(),
+                    retryable =
+                        response.code() in listOf(408, 429) ||
+                                response.code() in 500..599
+                )
             }
 
             return response
@@ -147,28 +291,49 @@ class ApiStudyRepository(
         } catch (exception: ApiException) {
             throw exception
         } catch (exception: JsonParseException) {
-            throw ApiException("The API returned an unexpected response.")
+            throw ApiException(
+                "The API returned an unexpected response.",
+                retryable = true
+            )
         } catch (exception: IOException) {
             throw ApiException(
-                "Connection failed. Check your internet and refresh the list " +
-                        "before retrying a change."
+                "Connection unavailable. Saved changes can be retried.",
+                retryable = true
             )
         }
     }
 
-    private fun responseMessage(response: Response<*>): String {
+    private fun responseMessage(
+        response: Response<*>
+    ): String {
         val fallback = when (response.code()) {
-            401 -> "Your session has expired. Sign out and sign in again."
-            403 -> "You do not have permission to perform this action."
-            404 -> "This record is no longer available. Refresh the list."
-            409 -> "This change conflicts with existing data."
-            in 500..599 -> "The server is unavailable. Please try again shortly."
-            else -> "The request failed (${response.code()})."
+            401 ->
+                "Your session has expired. Sign out and sign in again."
+
+            403 ->
+                "You do not have permission to perform this action."
+
+            404 ->
+                "This record is no longer available. Refresh the list."
+
+            409 ->
+                "This change conflicts with existing data."
+
+            408 ->
+                "The request timed out. Please try again."
+
+            429 ->
+                "Too many requests. Sync can try again shortly."
+
+            in 500..599 ->
+                "The server is unavailable. Please try again shortly."
+
+            else ->
+                "The request failed (${response.code()})."
         }
 
         val raw = response.errorBody()?.string()
 
-        // Show validation/conflict messages supplied by our API.
         if (response.code() in listOf(400, 404, 409)) {
             val message = runCatching {
                 JSONObject(raw ?: "{}")

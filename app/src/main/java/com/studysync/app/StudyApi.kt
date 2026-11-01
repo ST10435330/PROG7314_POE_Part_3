@@ -43,7 +43,8 @@ interface StudyApi {
     @DELETE("subjects/{id}")
     suspend fun deleteSubject(
         @Header("Authorization") authorization: String,
-        @Path("id") id: String
+        @Path("id") id: String,
+        @Header("X-Operation-Id") operationId: String? = null
     ): Response<Void>
 
     @GET("tasks")
@@ -67,8 +68,25 @@ interface StudyApi {
     @DELETE("tasks/{id}")
     suspend fun deleteTask(
         @Header("Authorization") authorization: String,
-        @Path("id") id: String
+        @Path("id") id: String,
+        @Header("X-Operation-Id") operationId: String? = null
     ): Response<Void>
+
+    @PUT("subjects/{id}")
+    suspend fun putSubject(
+        @Header("Authorization") authorization: String,
+        @Path("id") id: String,
+        @Header("X-Operation-Id") operationId: String,
+        @Body subject: SubjectRequest
+    ): Response<Subject>
+
+    @PUT("tasks/{id}")
+    suspend fun putTask(
+        @Header("Authorization") authorization: String,
+        @Path("id") id: String,
+        @Header("X-Operation-Id") operationId: String,
+        @Body task: TaskRequest
+    ): Response<StudyTask>
 }
 
 object StudyApiClient {

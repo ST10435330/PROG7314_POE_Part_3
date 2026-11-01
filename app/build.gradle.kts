@@ -56,4 +56,7 @@ dependencies {
 
     // Run Android SQLite tests
     testImplementation("org.robolectric:robolectric:4.16.1")
+
+    // Verify sync requests against a local HTTP test server.
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

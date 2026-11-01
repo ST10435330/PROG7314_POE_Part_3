@@ -18,7 +18,8 @@ data class PendingStudyChange(
     val kind: String,
     val recordId: String,
     val method: String,
-    val payload: String?
+    val payload: String?,
+    val error: String? = null
 )
 
 /**
@@ -32,7 +33,7 @@ class LocalStudyStore private constructor(
     context.applicationContext,
     databaseName(userId),
     null,
-    1
+    2
 ) {
     private val gson = Gson()
     private val changeCounter = MutableStateFlow(0L)
@@ -64,6 +65,7 @@ class LocalStudyStore private constructor(
                 record_id TEXT NOT NULL,
                 method TEXT NOT NULL CHECK (method IN ('PUT', 'DELETE')),
                 payload TEXT,
+                error TEXT,
                 CHECK ((method = 'PUT' AND payload IS NOT NULL) OR
                        (method = 'DELETE' AND payload IS NULL))
             )
@@ -78,7 +80,8 @@ class LocalStudyStore private constructor(
             """
             CREATE TABLE local_meta (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                version INTEGER NOT NULL
+                version INTEGER NOT NULL,
+                message TEXT
             )
             """.trimIndent()
         )
@@ -95,10 +98,13 @@ class LocalStudyStore private constructor(
         oldVersion: Int,
         newVersion: Int
     ) {
-        // Future versions must migrate pending changes rather than discard them.
-        error(
-            "A database migration is required from $oldVersion to $newVersion"
-        )
+        if (oldVersion == 1 && newVersion == 2) {
+            // Preserve every existing operation ID and cached record.
+            db.execSQL("ALTER TABLE outbox ADD COLUMN error TEXT")
+            db.execSQL("ALTER TABLE local_meta ADD COLUMN message TEXT")
+        } else {
+            error("A database migration is required from $oldVersion to $newVersion")
+        }
     }
 
     fun getSubjects(): List<Subject> =
@@ -139,6 +145,8 @@ class LocalStudyStore private constructor(
         }
 
         mutate { db ->
+            // A new edit supersedes changes the server explicitly rejected.
+            db.delete("outbox", "kind=? AND record_id=? AND error IS NOT NULL", arrayOf(kind, id))
             if (payload == null) {
                 db.delete(
                     "cache",
@@ -167,19 +175,24 @@ class LocalStudyStore private constructor(
                 }
             )
 
+            db.update("local_meta", ContentValues().apply {
+                put("message", "Device changes saved; waiting to sync.")
+            }, "id=1", null)
             bumpVersion(db)
         }
     }
 
     fun pendingChanges(
-        limit: Int = 100
+        limit: Int = 100,
+        readyOnly: Boolean = false
     ): List<PendingStudyChange> {
         require(limit in 1..1000)
 
         return writableDatabase.rawQuery(
             """
-            SELECT operation_id, kind, record_id, method, payload
+            SELECT operation_id, kind, record_id, method, payload, error
             FROM outbox
+            ${if (readyOnly) "WHERE error IS NULL" else ""}
             ORDER BY sequence
             LIMIT ?
             """.trimIndent(),
@@ -197,7 +210,8 @@ class LocalStudyStore private constructor(
                                 null
                             } else {
                                 cursor.getString(4)
-                            }
+                            },
+                            error = if (cursor.isNull(5)) null else cursor.getString(5)
                         )
                     )
                 }
@@ -214,18 +228,71 @@ class LocalStudyStore private constructor(
             cursor.getInt(0)
         }
 
-    // Acknowledge the exact request
+    // Acknowledge the exact request and older rejected edits it supersedes.
     fun acknowledge(operationId: String) {
         mutate { db ->
-            val deleted = db.delete(
-                "outbox",
-                "operation_id=?",
+            val record = db.rawQuery(
+                "SELECT kind, record_id, sequence FROM outbox WHERE operation_id=?",
                 arrayOf(operationId)
-            )
+            ).use { cursor ->
+                if (cursor.moveToFirst()) Triple(cursor.getString(0), cursor.getString(1), cursor.getLong(2))
+                else null
+            } ?: return@mutate
+            db.delete("outbox", """
+                operation_id=? OR
+                (kind=? AND record_id=? AND sequence<? AND error IS NOT NULL)
+            """.trimIndent(), arrayOf(operationId, record.first, record.second, record.third.toString()))
+            bumpVersion(db)
+        }
+    }
 
-            if (deleted > 0) {
-                bumpVersion(db)
+    fun rejectedCount(): Int = writableDatabase.rawQuery(
+        "SELECT COUNT(*) FROM outbox WHERE error IS NOT NULL", null
+    ).use { it.moveToFirst(); it.getInt(0) }
+
+    fun firstRejection(): String? = writableDatabase.rawQuery(
+        "SELECT error FROM outbox WHERE error IS NOT NULL ORDER BY sequence LIMIT 1", null
+    ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+    fun syncMessage(): String? = writableDatabase.rawQuery(
+        "SELECT message FROM local_meta WHERE id=1", null
+    ).use { if (it.moveToFirst() && !it.isNull(0)) it.getString(0) else null }
+
+    fun setSyncMessage(message: String) {
+        writableDatabase.update("local_meta", ContentValues().apply { put("message", message) }, "id=1", null)
+        // Status text does not invalidate an in-flight cloud snapshot.
+        changeCounter.update { it + 1 }
+    }
+
+    fun reject(operationId: String, message: String) {
+        mutate { db ->
+            if (db.update("outbox", ContentValues().apply { put("error", message.take(500)) },
+                    "operation_id=?", arrayOf(operationId)) > 0) bumpVersion(db)
+        }
+    }
+
+    fun retryRejected() {
+        mutate { db ->
+            val values = ContentValues().apply { putNull("error") }
+            if (db.update("outbox", values, "error IS NOT NULL", null) > 0) bumpVersion(db)
+        }
+    }
+
+    /** Discard is an explicit user action; other queued changes remain protected. */
+    fun discardRejected() {
+        mutate { db ->
+            val records = db.rawQuery("SELECT DISTINCT kind, record_id FROM outbox WHERE error IS NOT NULL", null)
+                .use { cursor -> buildList {
+                    while (cursor.moveToNext()) add(cursor.getString(0) to cursor.getString(1))
+                } }
+            if (db.delete("outbox", "error IS NOT NULL", null) == 0) return@mutate
+            records.forEach { (kind, id) ->
+                val hasPending = db.rawQuery(
+                    "SELECT 1 FROM outbox WHERE kind=? AND record_id=? LIMIT 1", arrayOf(kind, id)
+                ).use { it.moveToFirst() }
+                if (!hasPending) db.delete("cache", "kind=? AND record_id=?", arrayOf(kind, id))
             }
+            bumpVersion(db)
         }
     }
 

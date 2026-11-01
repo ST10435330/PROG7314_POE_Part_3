@@ -53,48 +53,6 @@ fun StudySyncScreen(
 
     val dataVersion by repository.changes.collectAsState()
 
-    var pendingChanges by remember { mutableIntStateOf(0) }
-    var refreshingCloud by remember { mutableStateOf(true) }
-    var cloudMessage by remember { mutableStateOf<String?>(null) }
-    var cloudRefreshKey by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(repository, dataVersion) {
-        try {
-            pendingChanges = repository.pendingCount()
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (exception: Exception) {
-            cloudMessage = "Could not read the local sync status."
-            Log.e("StudySync", "Local sync status failed", exception)
-        }
-    }
-
-    LaunchedEffect(repository, cloudRefreshKey) {
-        refreshingCloud = true
-        cloudMessage = null
-
-        try {
-            cloudMessage = if (repository.refreshFromCloud()) {
-                "Cloud data refreshed."
-            } else {
-                "Newer device changes were kept. You can refresh again."
-            }
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (exception: Exception) {
-            cloudMessage =
-                "Cloud refresh unavailable. Your device data is still available."
-
-            Log.w(
-                "StudySync",
-                "Cloud refresh failed; retaining local data",
-                exception
-            )
-        } finally {
-            refreshingCloud = false
-        }
-    }
-
     val settingsStorage = remember(context) {
         SettingsStorage(context.applicationContext)
     }
@@ -172,45 +130,11 @@ fun StudySyncScreen(
                 }
 
                 else -> {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                if (pendingChanges > 0) {
-                                    "$pendingChanges changes waiting to upload"
-                                } else {
-                                    "Data is stored on this device."
-                                },
-                                style = MaterialTheme.typography.bodySmall
-                            )
-
-                            if (refreshingCloud) {
-                                LinearProgressIndicator(
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-
-                            cloudMessage?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-
-                            TextButton(
-                                enabled = !refreshingCloud,
-                                onClick = { cloudRefreshKey++ }
-                            ) {
-                                Text("Refresh cloud data")
-                            }
-                        }
-                    }
+                    SyncStatusCard(
+                        repository = repository,
+                        userId = userId,
+                        dataVersion = dataVersion
+                    )
                     TabRow(selectedTabIndex = selectedTab) {
                         listOf("Tasks", "Subjects", "Settings")
                             .forEachIndexed { index, title ->

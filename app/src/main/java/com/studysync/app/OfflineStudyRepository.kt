@@ -4,11 +4,19 @@ import android.content.Context
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+
+data class LocalSyncStatus(
+    val pending: Int = 0,
+    val rejected: Int = 0,
+    val message: String? = null,
+    val rejection: String? = null
+)
 
 /**
  * Reads and writes SQLite data without requiring a network call.
@@ -21,6 +29,9 @@ class OfflineStudyRepository(
     private val remote: StudyRepository = ApiStudyRepository(userId),
     private val currentUserId: () -> String? = {
         FirebaseAuth.getInstance().currentUser?.uid
+    },
+    private val scheduleSync: (Boolean) -> Unit = { manual ->
+        StudySync.enqueue(context, userId, manual)
     }
 ) : StudyRepository {
     private val store = LocalStudyStore.get(context, userId)
@@ -36,7 +47,7 @@ class OfflineStudyRepository(
         store.getTasks()
     }
 
-    override suspend fun createSubject(subject: Subject): Subject = local {
+    override suspend fun createSubject(subject: Subject): Subject = write {
         val saved = subject.copy(
             subjectId = UUID.randomUUID().toString(),
             name = subject.name.trim(),
@@ -48,7 +59,7 @@ class OfflineStudyRepository(
         saved
     }
 
-    override suspend fun updateSubject(subject: Subject): Subject = local {
+    override suspend fun updateSubject(subject: Subject): Subject = write {
         require(
             store.getSubjects().any {
                 it.subjectId == subject.subjectId
@@ -68,7 +79,7 @@ class OfflineStudyRepository(
     }
 
     override suspend fun deleteSubject(subjectId: String) {
-        local {
+        write {
             require(
                 store.getTasks().none {
                     it.subjectId == subjectId
@@ -81,7 +92,7 @@ class OfflineStudyRepository(
         }
     }
 
-    override suspend fun createTask(task: StudyTask): StudyTask = local {
+    override suspend fun createTask(task: StudyTask): StudyTask = write {
         val saved = cleanTask(
             task.copy(taskId = UUID.randomUUID().toString())
         )
@@ -91,7 +102,7 @@ class OfflineStudyRepository(
         saved
     }
 
-    override suspend fun updateTask(task: StudyTask): StudyTask = local {
+    override suspend fun updateTask(task: StudyTask): StudyTask = write {
         require(
             store.getTasks().any {
                 it.taskId == task.taskId
@@ -108,13 +119,31 @@ class OfflineStudyRepository(
     }
 
     override suspend fun deleteTask(taskId: String) {
-        local {
+        write {
             store.deleteTask(taskId)
         }
     }
 
     suspend fun pendingCount(): Int = local {
         store.pendingCount()
+    }
+
+    suspend fun syncStatus(): LocalSyncStatus = local {
+        LocalSyncStatus(store.pendingCount(), store.rejectedCount(), store.syncMessage(), store.firstRejection())
+    }
+
+    suspend fun retrySync() {
+        write(manual = true) {
+            store.retryRejected()
+            store.setSyncMessage("Sync requested. Waiting for a connection if needed.")
+        }
+    }
+
+    suspend fun discardRejected() {
+        write(manual = true) {
+            store.discardRejected()
+            store.setSyncMessage("Rejected edits discarded. Cloud data will load when connected.")
+        }
     }
 
     suspend fun refreshFromCloud(): Boolean {
@@ -179,7 +208,7 @@ class OfflineStudyRepository(
     private fun requireAccount() {
         if (currentUserId() != userId) {
             throw ApiException(
-                "Your account changed. Please sign in again."
+                "Your account changed. Please sign in again.", statusCode = 401
             )
         }
     }
@@ -191,6 +220,17 @@ class OfflineStudyRepository(
             requireAccount()
             block().also { requireAccount() }
         }
+    }
+
+    private suspend fun <T> write(manual: Boolean = false, block: () -> T): T = withContext(NonCancellable) {
+        val result = local(block)
+        try {
+            scheduleSync(manual)
+        } catch (exception: Exception) {
+            // The saved outbox remains durable; startup/periodic work can recover it.
+            Log.w("StudySync", "Could not schedule sync immediately", exception)
+        }
+        result
     }
 
     companion object {

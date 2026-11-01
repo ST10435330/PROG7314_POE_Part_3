@@ -31,7 +31,8 @@ class OfflineRepositoryTest {
             RuntimeEnvironment.getApplication(),
             uid,
             cloud,
-            currentUserId = { activeUser }
+            currentUserId = { activeUser },
+            scheduleSync = {}
         )
     }
 

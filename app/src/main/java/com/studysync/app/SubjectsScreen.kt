@@ -15,7 +15,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
-fun SubjectsScreen(repository: StudyRepository) {
+fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
     val scope = rememberCoroutineScope()
 
     var subjects by remember {
@@ -38,8 +38,8 @@ fun SubjectsScreen(repository: StudyRepository) {
     var saving by remember { mutableStateOf(false) }
     var deleteError by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(repository, reloadKey) {
-        loading = true
+    LaunchedEffect(repository, reloadKey, dataVersion) {
+        // Refresh the list without hiding an open form.
         loadError = null
 
         try {
@@ -52,7 +52,7 @@ fun SubjectsScreen(repository: StudyRepository) {
                 editingId = null
             }
 
-            Log.d("StudySync", "Subjects loaded from API")
+            Log.d("StudySync", "Subjects loaded from repository")
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
@@ -256,7 +256,7 @@ fun SubjectsScreen(repository: StudyRepository) {
 
                                     showForm = false
                                     editingId = null
-                                    Log.d("StudySync", "Subject saved through API")
+                                    Log.d("StudySync", "Subject saved through repository")
                                 } catch (exception: CancellationException) {
                                     throw exception
                                 } catch (exception: Exception) {
@@ -326,7 +326,7 @@ fun SubjectsScreen(repository: StudyRepository) {
                                     }
 
                                     pendingDeleteId = null
-                                    Log.d("StudySync", "Subject deleted through API")
+                                    Log.d("StudySync", "Subject deleted through repository")
                                 } catch (exception: CancellationException) {
                                     throw exception
                                 } catch (exception: Exception) {

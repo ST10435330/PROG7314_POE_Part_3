@@ -17,7 +17,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun TasksScreen(
     repository: StudyRepository,
-    settings: AppSettings
+    settings: AppSettings,
+    dataVersion: Long = 0L
 ) {
     val scope = rememberCoroutineScope()
 
@@ -63,8 +64,8 @@ fun TasksScreen(
             delay(60_000L)
         }
     }
-    LaunchedEffect(repository, reloadKey) {
-        loading = true
+    LaunchedEffect(repository, reloadKey, dataVersion) {
+        // Keep open forms mounted during cache updates.
         loadError = null
 
         try {
@@ -369,13 +370,10 @@ fun TasksScreen(
                                 repository.updateTask(draft)
                             }
 
-                            tasks = if (creating) {
-                                tasks + saved
-                            } else {
-                                tasks.map {
-                                    if (it.taskId == saved.taskId) saved else it
-                                }
-                            }
+                            // The cache notification may already have loaded this task.
+                            tasks = tasks.filterNot {
+                                it.taskId == saved.taskId
+                            } + saved
 
                             showForm = false
                             editingId = null

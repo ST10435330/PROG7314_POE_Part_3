@@ -100,7 +100,7 @@ function memoryDb() {
   };
 }
 
-async function start(t) {
+async function start(t, messaging) {
   const db = memoryDb();
 
   // Test authentication only; production uses Firebase Admin.
@@ -108,7 +108,7 @@ async function start(t) {
     verifyIdToken: async token => ({ uid: token })
   };
 
-  const server = createApp({ auth, db }).listen(0, "127.0.0.1");
+  const server = createApp({ auth, db, messaging }).listen(0, "127.0.0.1");
   await once(server, "listening");
 
   t.after(() =>
@@ -371,4 +371,142 @@ test("duplicate subject checks and legacy routes remain functional", async t => 
 
   assert.equal((await send("DELETE", path)).status, 204);
   assert.equal((await send("DELETE", path)).status, 404);
+});
+
+// These tests exercise the real HTTP routes with a fake FCM transport.
+function pushSender() {
+  const calls = [];
+  return {
+    calls,
+    async sendEachForMulticast(message) {
+      calls.push(message);
+      return { responses: message.tokens.map(() => ({ success: true })) };
+    }
+  };
+}
+
+async function until(predicate) {
+  const deadline = Date.now() + 2000;
+  while (!predicate()) {
+    assert.ok(Date.now() < deadline, "Expected background notification work to finish");
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+}
+
+const phoneToken = "test-phone-token-1234567890";
+async function registerPhone(send, user = "user-a", token = phoneToken) {
+  assert.equal((await send("POST", "notifications/register", undefined, { token }, user)).status, 200);
+}
+
+test("committed task changes notify only that account's devices", async t => {
+  const messaging = pushSender();
+  const { send } = await start(t, messaging);
+  await registerPhone(send);
+  await registerPhone(send, "user-b", "another-phone-token-1234567890");
+  await send("PUT", "subjects/subject-1", "parent", subject);
+  assert.equal(messaging.calls.length, 0);
+
+  assert.equal((await send("PUT", "tasks/task-1", "create", task)).status, 200);
+  assert.equal((await send("PUT", "tasks/task-1", "complete", { ...task, completed: true })).status, 200);
+  assert.equal((await send("DELETE", "tasks/task-1", "delete")).status, 204);
+  await until(() => messaging.calls.length === 3);
+
+  for (const message of messaging.calls) {
+    assert.deepEqual(message.tokens, [phoneToken]);
+    assert.equal(message.data.userId, "user-a");
+    assert.equal(message.data.type, "task_update");
+    assert.match(message.data.eventId, /^[a-f0-9]{64}$/);
+    assert.equal(message.notification, undefined);
+    assert.equal(JSON.stringify(message).includes(task.title), false);
+    assert.equal(message.android.priority, "high");
+  }
+  assert.equal(new Set(messaging.calls.map(call => call.data.eventId)).size, 3);
+});
+
+test("upload retries reuse the event ID that Android deduplicates", async t => {
+  const messaging = pushSender();
+  const { send, db } = await start(t, messaging);
+  await registerPhone(send);
+  await send("PUT", "subjects/subject-1", "parent", subject);
+  const first = await send("PUT", "tasks/task-1", "same-operation", task);
+  assert.deepEqual(await send("PUT", "tasks/task-1", "same-operation", task), first);
+  await until(() => messaging.calls.length === 2);
+  assert.equal(messaging.calls[0].data.eventId, messaging.calls[1].data.eventId);
+  assert.equal(db.records.get("users/user-a").writeRevision, 2);
+});
+
+test("rejected task writes do not send alerts", async t => {
+  const messaging = pushSender();
+  const { send } = await start(t, messaging);
+  await registerPhone(send);
+  assert.equal((await send("PUT", "tasks/task-1", "missing-parent", task)).status, 400);
+  assert.equal((await send("PUT", "tasks/task-1", "invalid", { ...task, title: "" })).status, 400);
+  assert.equal(messaging.calls.length, 0);
+});
+
+test("FCM failure cannot roll back a successfully saved task", async t => {
+  let attempted = false;
+  const messaging = { sendEachForMulticast: async () => {
+    attempted = true;
+    throw Object.assign(new Error("Provider unavailable"), { code: "messaging/server-unavailable" });
+  } };
+  const { send, db } = await start(t, messaging);
+  await registerPhone(send);
+  await send("PUT", "subjects/subject-1", "parent", subject);
+  assert.equal((await send("PUT", "tasks/task-1", "task-save", task)).status, 200);
+  await until(() => attempted);
+  assert.equal(db.records.get("users/user-a/tasks/task-1").title, task.title);
+});
+
+test("automatic alerts remove expired device registrations", async t => {
+  const messaging = { sendEachForMulticast: async () => ({ responses: [{
+    success: false, error: { code: "messaging/registration-token-not-registered" }
+  }] }) };
+  const { send, db } = await start(t, messaging);
+  await registerPhone(send);
+  await send("PUT", "subjects/subject-1", "parent", subject);
+  await send("PUT", "tasks/task-1", "task-save", task);
+  await until(() => ![...db.records.keys()].some(key => key.startsWith("pushDevices/")));
+});
+
+test("automatic alert cleanup preserves a refreshed device", async t => {
+  const messaging = pushSender();
+  const { send, db } = await start(t, messaging);
+  let finished = false;
+  await registerPhone(send);
+  const old = [...db.records.values()].find(value => value.token === phoneToken).generation;
+  messaging.sendEachForMulticast = async () => {
+    await registerPhone(send);
+    finished = true;
+    return { responses: [{ success: false, error: { code: "messaging/registration-token-not-registered" } }] };
+  };
+  await send("PUT", "subjects/subject-1", "parent", subject);
+  await send("PUT", "tasks/task-1", "task-save", task);
+  await until(() => finished);
+  // Wait behind cleanup's Firestore transaction before inspecting its outcome.
+  await new Promise(resolve => setImmediate(resolve));
+  const current = [...db.records.values()].find(value => value.token === phoneToken);
+  assert.ok(current);
+  assert.notEqual(current.generation, old);
+});
+
+test("legacy task routes also send automatic alerts", async t => {
+  const messaging = pushSender();
+  const { send } = await start(t, messaging);
+  await registerPhone(send);
+  await send("PUT", "subjects/subject-1", "parent", subject);
+  const created = await send("POST", "tasks", undefined, task);
+  assert.equal(created.status, 201);
+  const path = `tasks/${created.body.taskId}`;
+  assert.equal((await send("PATCH", path, undefined, { completed: true })).status, 200);
+  assert.equal((await send("DELETE", path)).status, 204);
+  await until(() => messaging.calls.length === 3);
+});
+
+test("accounts without registered devices save tasks without sending", async t => {
+  const messaging = pushSender();
+  const { send } = await start(t, messaging);
+  await send("PUT", "subjects/subject-1", "parent", subject);
+  assert.equal((await send("PUT", "tasks/task-1", "task-save", task)).status, 200);
+  assert.equal(messaging.calls.length, 0);
 });

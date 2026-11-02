@@ -1,6 +1,8 @@
 import express from "express";
+import { randomUUID } from "node:crypto";
 import { installSyncRoutes } from "./sync.js";
 import { installNotificationRoutes } from "./notifications.js";
+import { notifyTaskChange } from "./taskNotifications.js";
 import {
   ApiError,
   subjectInput,
@@ -19,6 +21,10 @@ function record(kind, id, data) {
 
 export function createApp({ auth, db, messaging }) {
   const app = express();
+  const notifyTask = (uid, operationId) => {
+    // The sender handles failures independently of the successful task response.
+    void notifyTaskChange(db, messaging, uid, operationId);
+  };
 
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
@@ -175,7 +181,7 @@ export function createApp({ auth, db, messaging }) {
     });
   }
 
-  installSyncRoutes(app, db);
+  installSyncRoutes(app, db, notifyTask);
   installNotificationRoutes(app, db, messaging);
 
   for (const kind of ["subjects", "tasks"]) {
@@ -190,19 +196,20 @@ export function createApp({ auth, db, messaging }) {
     });
 
     app.post(`/api/${kind}`, async (req, res) => {
-      res.status(201).json(
-        await write(req, kind, "create")
-      );
+      const saved = await write(req, kind, "create");
+      if (kind === "tasks") notifyTask(req.uid, randomUUID());
+      res.status(201).json(saved);
     });
 
     app.patch(`/api/${kind}/:id`, async (req, res) => {
-      res.json(
-        await write(req, kind, "update")
-      );
+      const saved = await write(req, kind, "update");
+      if (kind === "tasks") notifyTask(req.uid, randomUUID());
+      res.json(saved);
     });
 
     app.delete(`/api/${kind}/:id`, async (req, res) => {
       await write(req, kind, "delete");
+      if (kind === "tasks") notifyTask(req.uid, randomUUID());
       res.status(204).end();
     });
   }

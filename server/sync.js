@@ -11,7 +11,7 @@ import {
  * The receipt and record change commit together in one transaction.
  * Reference: https://firebase.google.com/docs/firestore/manage-data/transactions
  */
-export function installSyncRoutes(app, db) {
+export function installSyncRoutes(app, db, notifyTask = () => {}) {
   async function writeSync(req, kind, deleting) {
     const operationId = req.get("X-Operation-Id");
 
@@ -143,7 +143,9 @@ export function installSyncRoutes(app, db) {
 
   for (const kind of ["subjects", "tasks"]) {
     app.put(`/api/${kind}/:id`, async (req, res) => {
-      res.json(await writeSync(req, kind, false));
+      const saved = await writeSync(req, kind, false);
+      if (kind === "tasks") notifyTask(req.uid, req.get("X-Operation-Id"));
+      res.json(saved);
     });
 
     app.delete(`/api/${kind}/:id`, async (req, res, next) => {
@@ -152,6 +154,7 @@ export function installSyncRoutes(app, db) {
       }
 
       await writeSync(req, kind, true);
+      if (kind === "tasks") notifyTask(req.uid, req.get("X-Operation-Id"));
       res.status(204).end();
     });
   }

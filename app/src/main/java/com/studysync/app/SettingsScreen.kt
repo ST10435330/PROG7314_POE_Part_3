@@ -41,6 +41,10 @@ fun SettingsScreen(
 
         HorizontalDivider()
 
+        NotificationSettings(userId = userId)
+
+        HorizontalDivider()
+
         Text("Choose how you organise your study tasks.")
 
         TaskChoice(

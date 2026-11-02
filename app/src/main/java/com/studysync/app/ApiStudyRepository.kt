@@ -44,6 +44,17 @@ class ApiStudyRepository(
     }
 ) : StudyRepository {
     private val gson = Gson()
+    suspend fun registerDevice(token: String) {
+        execute { api.registerDevice(it, DeviceTokenRequest(token)) }
+    }
+
+    suspend fun unregisterDevice(token: String) {
+        execute { api.unregisterDevice(it, DeviceTokenRequest(token)) }
+    }
+
+    suspend fun testNotification(token: String) {
+        execute { api.testNotification(it, DeviceTokenRequest(token)) }
+    }
 
     override suspend fun getSubjects(): List<Subject> {
         return body { api.getSubjects(it) }
@@ -319,11 +330,14 @@ class ApiStudyRepository(
             409 ->
                 "This change conflicts with existing data."
 
+            410 ->
+                "This device registration expired. Turn notifications off and on again."
+
             408 ->
                 "The request timed out. Please try again."
 
             429 ->
-                "Too many requests. Sync can try again shortly."
+                "Too many requests. Please wait at least 30 seconds and try again."
 
             in 500..599 ->
                 "The server is unavailable. Please try again shortly."

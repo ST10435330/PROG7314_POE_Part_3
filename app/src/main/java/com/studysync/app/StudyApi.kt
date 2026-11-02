@@ -20,6 +20,7 @@ data class TaskRequest(
     val priority: String,
     val completed: Boolean
 )
+data class DeviceTokenRequest(val token: String)
 
 interface StudyApi {
     @GET("subjects")
@@ -87,6 +88,24 @@ interface StudyApi {
         @Header("X-Operation-Id") operationId: String,
         @Body task: TaskRequest
     ): Response<StudyTask>
+
+    @POST("notifications/register")
+    suspend fun registerDevice(
+        @Header("Authorization") authorization: String,
+        @Body device: DeviceTokenRequest
+    ): Response<Unit>
+
+    @POST("notifications/unregister")
+    suspend fun unregisterDevice(
+        @Header("Authorization") authorization: String,
+        @Body device: DeviceTokenRequest
+    ): Response<Unit>
+
+    @POST("notifications/test")
+    suspend fun testNotification(
+        @Header("Authorization") authorization: String,
+        @Body device: DeviceTokenRequest
+    ): Response<Unit>
 }
 
 object StudyApiClient {

@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PushNotifications.createChannel(this)
         enableEdgeToEdge()
 
         Log.d("StudySync", "Main screen created")
@@ -46,6 +47,14 @@ fun StudySyncScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(userId) {
+        try {
+            PushNotifications.schedule(context, userId)
+        } catch (_: Exception) {
+            Log.w("StudySync", "Could not schedule push registration")
+        }
+    }
 
     val repository = remember(context, userId) {
         OfflineStudyRepository(context.applicationContext, userId)

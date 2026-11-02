@@ -72,6 +72,7 @@ fun AuthScreen() {
         val listener = FirebaseAuth.AuthStateListener {
             if (user?.uid != it.currentUser?.uid) {
                 biometricLock.lock()
+                PushNotifications.clear(context)
             }
 
             user = it.currentUser
@@ -92,6 +93,7 @@ fun AuthScreen() {
 
             biometricLock.lock()
             auth.signOut()
+            PushNotifications.clear(context)
             user = null
 
             scope.launch {
@@ -239,6 +241,7 @@ fun AuthScreen() {
         }
     }
 }
+
 
 @Composable
 private fun LoginScreen(

@@ -1,5 +1,6 @@
 import express from "express";
 import { installSyncRoutes } from "./sync.js";
+import { installNotificationRoutes } from "./notifications.js";
 import {
   ApiError,
   subjectInput,
@@ -16,7 +17,7 @@ function record(kind, id, data) {
   };
 }
 
-export function createApp({ auth, db }) {
+export function createApp({ auth, db, messaging }) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -175,6 +176,7 @@ export function createApp({ auth, db }) {
   }
 
   installSyncRoutes(app, db);
+  installNotificationRoutes(app, db, messaging);
 
   for (const kind of ["subjects", "tasks"]) {
     app.get(`/api/${kind}`, async (req, res) => {

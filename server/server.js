@@ -5,6 +5,7 @@ import {
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { createApp } from "./app.js";
+import { getMessaging } from "firebase-admin/messaging";
 
 initializeApp({
   credential: applicationDefault()
@@ -18,7 +19,8 @@ await db.doc("_health/startup").get();
 
 const app = createApp({
   auth: getAuth(),
-  db
+  db,
+  messaging: getMessaging()
 });
 
 const port = Number(process.env.PORT || 3000);

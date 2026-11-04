@@ -197,14 +197,13 @@ fun AuthScreen() {
                             error = null
                         } catch (exception: NoCredentialException) {
                             error =
-                                "No Google account was available. Check your " +
-                                        "device's Google accounts and try again."
+                                AppMessage.GOOGLE_ACCOUNT_UNAVAILABLE.name
                         } catch (exception: FirebaseNetworkException) {
                             error =
-                                "Could not connect. Check your internet and try again."
+                                AppMessage.CONNECTION_ERROR.name
                         } catch (exception: Exception) {
                             error =
-                                "Google sign-in failed. Please try again."
+                                AppMessage.GOOGLE_SIGN_IN_ERROR.name
 
                             Log.e(
                                 "StudySync",
@@ -249,6 +248,7 @@ private fun LoginScreen(
     error: String?,
     onSignIn: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -259,13 +259,13 @@ private fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "StudySync",
+            context.getString(R.string.app_name),
             style = MaterialTheme.typography.headlineLarge
         )
 
         Spacer(Modifier.height(12.dp))
 
-        Text("Organise your subjects and study tasks.")
+        Text(context.getString(R.string.login_description))
 
         Spacer(Modifier.height(24.dp))
 
@@ -274,13 +274,13 @@ private fun LoginScreen(
             enabled = !busy,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (busy) "Please wait..." else "Sign in with Google")
+            Text(if (busy) context.getString(R.string.please_wait) else context.getString(R.string.sign_in_google))
         }
 
         Spacer(Modifier.height(12.dp))
 
         Text(
-            "Your account is created the first time you sign in.",
+            context.getString(R.string.first_sign_in),
             style = MaterialTheme.typography.bodySmall
         )
 
@@ -291,7 +291,7 @@ private fun LoginScreen(
 
         error?.let {
             Spacer(Modifier.height(16.dp))
-            Text(it, color = MaterialTheme.colorScheme.error)
+            Text(messageText(context, it), color = MaterialTheme.colorScheme.error)
         }
     }
 }

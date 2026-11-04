@@ -28,7 +28,7 @@ class StudySyncEngine(
         lock.withLock {
             if (!canRun()) return@withLock SyncOutcome.STOPPED
             try {
-                store.setSyncMessage("Sync started.")
+                store.setSyncMessage(AppMessage.SYNC_STARTED.name)
                 val deadline = SystemClock.elapsedRealtime() + 180_000L
                 var attempts = 0
                 var successes = 0
@@ -71,7 +71,7 @@ class StudySyncEngine(
                 }
 
                 if (store.pendingChanges(1, readyOnly = true).isNotEmpty()) {
-                    store.setSyncMessage("More changes are waiting for the next sync attempt.")
+                    store.setSyncMessage(AppMessage.SYNC_MORE_PENDING.name)
                     return@withLock SyncOutcome.RETRY
                 }
                 if (!canRun()) return@withLock SyncOutcome.STOPPED
@@ -81,8 +81,8 @@ class StudySyncEngine(
                     return@withLock SyncOutcome.RETRY
                 }
                 store.setSyncMessage(
-                    if (store.rejectedCount() > 0) "Some changes need attention. Edit them or retry."
-                    else "Last sync completed."
+                    if (store.rejectedCount() > 0) AppMessage.SYNC_NEEDS_ATTENTION.name
+                    else AppMessage.SYNC_COMPLETED.name
                 )
                 Log.d("StudySync", "Sync finished; uploads acknowledged: $successes")
                 SyncOutcome.COMPLETE
@@ -90,11 +90,11 @@ class StudySyncEngine(
                 throw exception
             } catch (exception: ApiException) {
                 if (!canRun()) return@withLock SyncOutcome.STOPPED
-                store.setSyncMessage(exception.message ?: "Sync could not finish.")
+                store.setSyncMessage(exception.message ?: AppMessage.SYNC_FAILED.name)
                 if (exception.retryable) SyncOutcome.RETRY else SyncOutcome.BLOCKED
             } catch (exception: Exception) {
                 if (!canRun()) return@withLock SyncOutcome.STOPPED
-                store.setSyncMessage("Sync could not finish. Your queued changes are saved.")
+                store.setSyncMessage(AppMessage.SYNC_FAILED_SAVED.name)
                 Log.e("StudySync", "Sync failed with queued data retained", exception)
                 SyncOutcome.BLOCKED
             }
@@ -106,8 +106,8 @@ class StudySyncEngine(
             JSONObject(change.payload ?: "{}").optString(
                 if (change.kind == "subjects") "name" else "title"
             )
-        }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Deleted item"
-        return "$label: ${exception.message ?: "Change rejected."}"
+        }.getOrNull()?.takeIf { it.isNotBlank() } ?: AppMessage.DELETED_ITEM.name
+        return "$label: ${exception.message ?: AppMessage.CHANGE_REJECTED.name}"
     }
 
     companion object {

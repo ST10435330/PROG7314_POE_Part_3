@@ -57,7 +57,7 @@ class BiometricLock(context: Context) {
         onError: (String) -> Unit
     ) {
         if (prompt != null) {
-            onError("An authentication request is already open.")
+            onError(AppMessage.BIOMETRIC_ALREADY_OPEN.name)
             return
         }
 
@@ -68,10 +68,10 @@ class BiometricLock(context: Context) {
             onError(
                 when (availability) {
                     BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
-                        "Add a fingerprint or strong face credential in phone settings."
+                        AppMessage.BIOMETRIC_ENROL_REQUIRED.name
                     BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
-                        "This phone does not support strong biometric authentication."
-                    else -> "Biometrics are unavailable. Try again or use Google sign-in."
+                        AppMessage.BIOMETRIC_UNSUPPORTED.name
+                    else -> AppMessage.BIOMETRIC_UNAVAILABLE.name
                 }
             )
             return
@@ -93,7 +93,7 @@ class BiometricLock(context: Context) {
                         FirebaseAuth.getInstance().currentUser?.uid != userId ||
                         !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
                     ) {
-                        onError("Authentication cancelled. Please try again.")
+                        onError(AppMessage.BIOMETRIC_CANCELLED.name)
                         return
                     }
 
@@ -154,7 +154,7 @@ class BiometricLock(context: Context) {
                         )
 
                         onError(
-                            "Verification failed. Use Google sign-in to recover."
+                            AppMessage.BIOMETRIC_FAILED.name
                         )
                     }
                 }
@@ -172,7 +172,15 @@ class BiometricLock(context: Context) {
                         "Biometric prompt closed: $errorCode"
                     )
 
-                    onError(errString.toString())
+                    onError(
+                        when (errorCode) {
+                            BiometricPrompt.ERROR_CANCELED,
+                            BiometricPrompt.ERROR_USER_CANCELED,
+                            BiometricPrompt.ERROR_NEGATIVE_BUTTON ->
+                                AppMessage.BIOMETRIC_CANCELLED.name
+                            else -> AppMessage.BIOMETRIC_UNAVAILABLE.name
+                        }
+                    )
                 }
 
                 override fun onAuthenticationFailed() {
@@ -190,12 +198,12 @@ class BiometricLock(context: Context) {
             prompt = nativePrompt
 
             val info = BiometricPrompt.PromptInfo.Builder()
-                .setTitle("StudySync verification")
-                .setSubtitle("Verify your identity to continue")
+                .setTitle(activity.getString(R.string.biometric_prompt_title))
+                .setSubtitle(activity.getString(R.string.biometric_prompt_subtitle))
                 .setAllowedAuthenticators(
                     BiometricManager.Authenticators.BIOMETRIC_STRONG
                 )
-                .setNegativeButtonText("Cancel")
+                .setNegativeButtonText(activity.getString(R.string.cancel))
                 .build()
 
             nativePrompt.authenticate(
@@ -212,8 +220,7 @@ class BiometricLock(context: Context) {
             )
 
             onError(
-                "Biometric setup is unavailable. " +
-                        "Use Google sign-in, then enable it again."
+                AppMessage.BIOMETRIC_SETUP_ERROR.name
             )
         }
     }

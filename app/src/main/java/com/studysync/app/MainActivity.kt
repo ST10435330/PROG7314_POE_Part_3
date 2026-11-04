@@ -1,6 +1,7 @@
 package com.studysync.app
 
 import android.os.Bundle
+import android.os.Build
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
@@ -19,7 +20,14 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Older Android versions need the saved language before activity creation.
+        if (Build.VERSION.SDK_INT < 33) {
+            AppLanguage.apply(AppLanguage.saved(this))
+        }
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= 33) {
+            AppLanguage.apply(AppLanguage.saved(this))
+        }
         PushNotifications.createChannel(this)
         enableEdgeToEdge()
 
@@ -85,7 +93,7 @@ fun StudySyncScreen(
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            loadError = "Could not load your settings. Please try again."
+            loadError = AppMessage.SETTINGS_LOAD_ERROR.name
             Log.e("StudySync", "Settings loading failed", exception)
         }
     }
@@ -93,13 +101,13 @@ fun StudySyncScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("StudySync") },
+                title = { Text(context.getString(R.string.app_name)) },
                 actions = {
                     TextButton(
                         enabled = !savingSettings,
                         onClick = onSignOut
                     ) {
-                        Text("Sign out")
+                        Text(context.getString(R.string.sign_out))
                     }
                 }
             )
@@ -119,12 +127,12 @@ fun StudySyncScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            loadError ?: "",
+                            messageText(context, loadError.orEmpty()),
                             color = MaterialTheme.colorScheme.error
                         )
 
                         Button(onClick = { reloadKey++ }) {
-                            Text("Retry")
+                            Text(context.getString(R.string.retry))
                         }
                     }
                 }
@@ -145,7 +153,11 @@ fun StudySyncScreen(
                         dataVersion = dataVersion
                     )
                     TabRow(selectedTabIndex = selectedTab) {
-                        listOf("Tasks", "Subjects", "Settings")
+                        listOf(
+                            context.getString(R.string.tasks),
+                            context.getString(R.string.subjects),
+                            context.getString(R.string.settings)
+                        )
                             .forEachIndexed { index, title ->
                                 Tab(
                                     selected = selectedTab == index,
@@ -188,7 +200,8 @@ fun StudySyncScreen(
                                         try {
                                             settingsStorage.save(updated)
                                             settings = updated
-                                            saveMessage = "Settings saved."
+                                            saveMessage = AppMessage.SETTINGS_SAVED.name
+                                            AppLanguage.apply(updated.language)
 
                                             Log.d(
                                                 "StudySync",
@@ -198,8 +211,7 @@ fun StudySyncScreen(
                                             throw exception
                                         } catch (exception: Exception) {
                                             saveError =
-                                                "Could not save settings. " +
-                                                        "Please try again."
+                                                AppMessage.SETTINGS_SAVE_ERROR.name
 
                                             Log.e(
                                                 "StudySync",

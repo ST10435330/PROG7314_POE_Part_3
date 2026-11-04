@@ -172,7 +172,7 @@ class ApiStudyRepository(
 
             if (saved.subjectId != change.recordId) {
                 throw ApiException(
-                    "The API returned a different subject ID.",
+                    AppMessage.API_SUBJECT_ID_ERROR.name,
                     retryable = true
                 )
             }
@@ -197,7 +197,7 @@ class ApiStudyRepository(
 
             if (saved.taskId != change.recordId) {
                 throw ApiException(
-                    "The API returned a different task ID.",
+                    AppMessage.API_TASK_ID_ERROR.name,
                     retryable = true
                 )
             }
@@ -209,7 +209,7 @@ class ApiStudyRepository(
     ): String {
         if (currentUserId() != userId) {
             throw ApiException(
-                "Please sign in again.",
+                AppMessage.SIGN_IN_AGAIN.name,
                 statusCode = 401
             )
         }
@@ -220,24 +220,24 @@ class ApiStudyRepository(
             throw exception
         } catch (exception: FirebaseNetworkException) {
             throw ApiException(
-                "Could not refresh your session. Check your internet connection.",
+                AppMessage.SESSION_NETWORK_ERROR.name,
                 retryable = true
             )
         } catch (exception: IOException) {
             throw ApiException(
-                "Your session could not be refreshed. Try again later.",
+                AppMessage.SESSION_REFRESH_ERROR.name,
                 retryable = true
             )
         } catch (exception: Exception) {
             throw ApiException(
-                "Your session could not be verified. Sign out and sign in again.",
+                AppMessage.SESSION_VERIFICATION_ERROR.name,
                 statusCode = 401
             )
         }
 
         if (currentUserId() != userId || token.isNullOrBlank()) {
             throw ApiException(
-                "Please sign in again.",
+                AppMessage.SIGN_IN_AGAIN.name,
                 statusCode = 401
             )
         }
@@ -250,7 +250,7 @@ class ApiStudyRepository(
     ): T {
         return execute(request).body()
             ?: throw ApiException(
-                "The API returned an empty response.",
+                AppMessage.API_EMPTY_RESPONSE.name,
                 retryable = true
             )
     }
@@ -276,7 +276,7 @@ class ApiStudyRepository(
                 response.errorBody()?.close()
 
                 throw ApiException(
-                    "Your account changed. Please sign in again.",
+                    AppMessage.ACCOUNT_CHANGED.name,
                     statusCode = 401
                 )
             }
@@ -303,12 +303,12 @@ class ApiStudyRepository(
             throw exception
         } catch (exception: JsonParseException) {
             throw ApiException(
-                "The API returned an unexpected response.",
+                AppMessage.API_UNEXPECTED_RESPONSE.name,
                 retryable = true
             )
         } catch (exception: IOException) {
             throw ApiException(
-                "Connection unavailable. Saved changes can be retried.",
+                AppMessage.API_CONNECTION_ERROR.name,
                 retryable = true
             )
         }
@@ -319,31 +319,31 @@ class ApiStudyRepository(
     ): String {
         val fallback = when (response.code()) {
             401 ->
-                "Your session has expired. Sign out and sign in again."
+                AppMessage.SESSION_EXPIRED.name
 
             403 ->
-                "You do not have permission to perform this action."
+                AppMessage.PERMISSION_ERROR.name
 
             404 ->
-                "This record is no longer available. Refresh the list."
+                AppMessage.RECORD_MISSING.name
 
             409 ->
-                "This change conflicts with existing data."
+                AppMessage.DATA_CONFLICT.name
 
             410 ->
-                "This device registration expired. Turn notifications off and on again."
+                AppMessage.DEVICE_REGISTRATION_EXPIRED.name
 
             408 ->
-                "The request timed out. Please try again."
+                AppMessage.REQUEST_TIMEOUT.name
 
             429 ->
-                "Too many requests. Please wait at least 30 seconds and try again."
+                AppMessage.REQUEST_RATE_LIMIT.name
 
             in 500..599 ->
-                "The server is unavailable. Please try again shortly."
+                AppMessage.SERVER_UNAVAILABLE.name
 
             else ->
-                "The request failed (${response.code()})."
+                AppMessage.OPERATION_FAILED.name
         }
 
         val raw = response.errorBody()?.string()

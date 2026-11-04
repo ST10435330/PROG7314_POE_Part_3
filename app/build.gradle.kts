@@ -18,6 +18,12 @@ android {
     }
 
     buildFeatures { compose = true }
+    bundle {
+        language {
+            // Keep both languages available when the device is offline.
+            enableSplit = false
+        }
+    }
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }

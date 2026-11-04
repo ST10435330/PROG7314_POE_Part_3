@@ -53,7 +53,7 @@ fun NotificationSettings(userId: String) {
             } catch (exception: CancellationException) {
                 throw exception
             } catch (_: Exception) {
-                error = "Could not update notification settings. Please retry."
+                error = AppMessage.NOTIFICATIONS_SAVE_ERROR.name
             } finally {
                 busy = false
             }
@@ -66,7 +66,7 @@ fun NotificationSettings(userId: String) {
         permissionRevision++
 
         if (granted) change(true)
-        else error = "Notifications remain off. You can allow them in Android settings."
+        else error = AppMessage.NOTIFICATIONS_DENIED.name
     }
 
     DisposableEffect(lifecycle) {
@@ -83,19 +83,19 @@ fun NotificationSettings(userId: String) {
             try {
                 PushNotifications.schedule(context, userId)
             } catch (_: Exception) {
-                error = "Could not schedule notification registration. Please retry."
+                error = AppMessage.NOTIFICATIONS_SCHEDULE_ERROR.name
             }
         }
     }
 
-    Text("Push notifications", style = MaterialTheme.typography.titleMedium)
-    Text("Receive study updates on this device. This choice is saved separately for each account.")
+    Text(context.getString(R.string.push_notifications), style = MaterialTheme.typography.titleMedium)
+    Text(context.getString(R.string.notification_description))
 
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("Allow study notifications", modifier = Modifier.weight(1f))
+        Text(context.getString(R.string.allow_notifications), modifier = Modifier.weight(1f))
 
         Switch(
             checked = enabled,
@@ -108,16 +108,16 @@ fun NotificationSettings(userId: String) {
                         permission.launch(Manifest.permission.POST_NOTIFICATIONS)
 
                     else ->
-                        error = "Allow notifications in Android settings, then enable this switch."
+                        error = AppMessage.NOTIFICATIONS_ALLOW_SETTINGS.name
                 }
             }
         )
     }
 
-    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    message?.let { Text(messageText(context, it), style = MaterialTheme.typography.bodySmall) }
 
-    if (!permitted) Text("Android currently blocks these notifications.")
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    if (!permitted) Text(context.getString(R.string.notifications_blocked))
+    error?.let { Text(messageText(context, it), color = MaterialTheme.colorScheme.error) }
     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -128,11 +128,11 @@ fun NotificationSettings(userId: String) {
                     PushNotifications.schedule(context, userId, test = true)
                     error = null
                 } catch (_: Exception) {
-                    error = "Could not queue a test notification. Please retry."
+                    error = AppMessage.NOTIFICATION_TEST_ERROR.name
                 }
             }
         ) {
-            Text("Send test")
+            Text(context.getString(R.string.send_test))
         }
 
         TextButton(
@@ -143,16 +143,16 @@ fun NotificationSettings(userId: String) {
                             .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                     )
                 } catch (_: Exception) {
-                    error = "Open Android settings and choose StudySync notifications."
+                    error = AppMessage.NOTIFICATION_SETTINGS_ERROR.name
                 }
             }
         ) {
-            Text("Android settings")
+            Text(context.getString(R.string.android_settings))
         }
     }
 
     Text(
-        "The test waits at least 10 seconds so you can put the app in the background.",
+        context.getString(R.string.notification_test_hint),
         style = MaterialTheme.typography.bodySmall
     )
 }

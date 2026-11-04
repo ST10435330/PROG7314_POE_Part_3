@@ -40,6 +40,26 @@ API Video Demonstration	           ->	https://youtu.be/jVKDiaOgvVY
 | Demonstration video | Narrated physical-phone demonstration linked above; include authentication and cloud data verification. |
 
 
+## Part 3: Commit 8 language support
+
+Choose **English** or **isiZulu** in **Settings → Language**. The choice saves on this device and remains after closing the app or signing out. English is the default. **Restore defaults** resets task priority and sorting only; it keeps the selected language.
+
+English text is in `app/src/main/res/values/strings.xml`, with isiZulu translations in `values-zu/strings.xml`. User-entered subjects, titles and descriptions remain as entered. API values and stored study data keep their existing format. Android and Google control their own system screens.
+
+Language tests cover preferences saved to disk, existing settings, invalid language fallback, task-default restoration, translation coverage, format arguments, AppCompat switching on API 28 and 33, background resources and previously saved sync messages. Run with JDK 17, Android SDK 35 and your real `app/google-services.json`:
+
+```sh
+sh ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+```
+
+For the demonstration:
+
+1. Sign in, open Settings and choose isiZulu. Show translated navigation, tasks, subjects and settings.
+2. Open task filters and an add/edit form. Submit an empty title to show translated validation, then open and cancel a delete confirmation.
+3. Close and reopen StudySync to show that isiZulu remains selected. With biometric protection enabled, verify that the translated lock screen still requires authentication.
+4. Change task priority or sorting, then restore defaults. Confirm that isiZulu remains selected.
+5. Switch back to English. Check offline edits and sync, and send a test notification if notifications are enabled.
+
 ## Architecture and design
 
 ```mermaid
@@ -120,7 +140,7 @@ npm test
 Pop-Location
 ```
 
-The current source contains 23 Android unit tests for validation and task logic, and 12 backend tests for validation, authentication requirements and user-scoped record paths. Backend tests use test doubles and do not replace live Firebase and physical-device testing.
+Android tests cover validation, task logic, offline storage and sync, notifications, and language preferences and resources. Backend tests cover validation, authentication requirements and user-scoped record paths. These tests do not replace live Firebase and physical-device testing.
 
 - `android.yml` builds the debug app, runs JUnit tests and uploads test reports. Add the Firebase Android configuration as the repository secret `GOOGLE_SERVICES_JSON`.
 - `backend.yml` installs locked dependencies and runs the Node test suite.

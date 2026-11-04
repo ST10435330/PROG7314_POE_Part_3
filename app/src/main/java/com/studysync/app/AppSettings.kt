@@ -6,10 +6,16 @@ import kotlinx.coroutines.withContext
 
 data class AppSettings(
     val defaultPriority: String = "MEDIUM",
-    val defaultSort: TaskSort = TaskSort.DUE_DATE
-)
+    val defaultSort: TaskSort = TaskSort.DUE_DATE,
+    val language: String = "en"
+) {
+    fun restoreTaskDefaults() = copy(
+        defaultPriority = "MEDIUM",
+        defaultSort = TaskSort.DUE_DATE
+    )
+}
 
-class SettingsStorage(context: Context) {
+class SettingsStorage(private val context: Context) {
     private val preferences = context.applicationContext
         .getSharedPreferences("studysync_settings", Context.MODE_PRIVATE)
 
@@ -33,23 +39,29 @@ class SettingsStorage(context: Context) {
 
         AppSettings(
             defaultPriority = priority,
-            defaultSort = sort
+            defaultSort = sort,
+            language = AppLanguage.saved(context)
         )
     }
 
     suspend fun save(settings: AppSettings) {
         withContext(Dispatchers.IO) {
             require(settings.defaultPriority in listOf("HIGH", "MEDIUM", "LOW")) {
-                "Choose a valid default priority."
+                AppMessage.INVALID_DEFAULT_PRIORITY.name
+            }
+
+            require(settings.language in AppLanguage.codes) {
+                AppMessage.INVALID_LANGUAGE.name
             }
 
             val saved = preferences.edit()
                 .putString("defaultPriority", settings.defaultPriority)
                 .putString("defaultSort", settings.defaultSort.name)
+                .putString("language", settings.language)
                 .commit()
 
             check(saved) {
-                "Could not save your settings."
+                AppMessage.SETTINGS_STORAGE_ERROR.name
             }
         }
     }

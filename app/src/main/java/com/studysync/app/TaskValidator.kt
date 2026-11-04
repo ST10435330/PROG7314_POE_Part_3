@@ -8,27 +8,27 @@ object TaskValidator {
     // A null result means the task passed validation.
     fun validate(task: StudyTask): String? {
         if (task.title.isBlank()) {
-            return "Enter a task title."
+            return AppMessage.TASK_TITLE_REQUIRED.name
         }
 
         if (task.title.trim().length > 120) {
-            return "The title must be 120 characters or fewer."
+            return AppMessage.TASK_TITLE_TOO_LONG.name
         }
 
         if (task.subjectId.isBlank()) {
-            return "Choose a subject."
+            return AppMessage.SUBJECT_REQUIRED.name
         }
 
         if (task.description.trim().length > 2000) {
-            return "The description must be 2000 characters or fewer."
+            return AppMessage.DESCRIPTION_TOO_LONG.name
         }
 
         if (!isValidDate(task.dueDate)) {
-            return "Enter a valid date in YYYY-MM-DD format."
+            return AppMessage.INVALID_DUE_DATE.name
         }
 
         if (task.priority !in listOf("HIGH", "MEDIUM", "LOW")) {
-            return "Choose High, Medium or Low priority."
+            return AppMessage.INVALID_PRIORITY.name
         }
 
         return null

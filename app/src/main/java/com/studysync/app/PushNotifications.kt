@@ -53,13 +53,20 @@ object PushNotifications {
     fun setEnabled(context: Context, uid: String, value: Boolean) {
         check(prefs(context).edit().putBoolean("enabled_$uid", value).commit())
         if (!value) clear(context)
-        status(context, uid, if (value) "Connecting notifications..." else "Notifications are off.")
+        status(
+            context, uid,
+            if (value) AppMessage.NOTIFICATIONS_CONNECTING.name else AppMessage.NOTIFICATIONS_OFF.name
+        )
         schedule(context, uid)
     }
 
     fun createChannel(context: Context) {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL, "Study updates", NotificationManager.IMPORTANCE_DEFAULT)
+            NotificationChannel(
+                CHANNEL,
+                AppLanguage.context(context).getString(R.string.study_updates),
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
         )
     }
 
@@ -98,7 +105,7 @@ object PushNotifications {
         if (test) status(
             context,
             uid,
-            "Test queued. Put the app in the background and watch for a notification."
+            AppMessage.NOTIFICATION_TEST_QUEUED.name
         )
     }
 
@@ -134,10 +141,11 @@ object PushNotifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val body = if (data["type"] == "test")
-            "Push notifications are connected."
-        else
-            "Your study tasks have changed. Open StudySync to view them."
+        val localizedContext = AppLanguage.context(context)
+        val body = localizedContext.getString(
+            if (data["type"] == "test") R.string.notification_test_body
+            else R.string.notification_update_body
+        )
 
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
@@ -199,9 +207,9 @@ object PushNotifications {
                 context,
                 uid,
                 if (enabled(context, uid))
-                    "Android is blocking notifications. Check system settings."
+                    AppMessage.NOTIFICATIONS_SYSTEM_BLOCKED.name
                 else
-                    "Notifications are off."
+                    AppMessage.NOTIFICATIONS_OFF.name
             )
             return
         }
@@ -233,8 +241,8 @@ object PushNotifications {
         status(
             context,
             uid,
-            if (sendTest) "Test sent. Check your notification tray."
-            else "Notifications are connected."
+            if (sendTest) AppMessage.NOTIFICATION_TEST_SENT.name
+            else AppMessage.NOTIFICATIONS_CONNECTED.name
         )
     }
 }
@@ -270,7 +278,7 @@ class PushRegistrationWorker(
                 uid,
                 apiErrorMessage(
                     exception,
-                    "Could not connect notifications. Check your connection and retry."
+                    AppMessage.NOTIFICATIONS_CONNECT_ERROR.name
                 )
             )
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
@@ -20,6 +21,7 @@ fun TaskForm(
     initialTask: StudyTask? = null,
     defaultPriority: String = "MEDIUM"
 ) {
+    val context = LocalContext.current
     var title by rememberSaveable(initialTask?.taskId) {
         mutableStateOf(initialTask?.title ?: "")
     }
@@ -44,7 +46,7 @@ fun TaskForm(
             if (!saving) onDismiss()
         },
         title = {
-            Text(if (initialTask == null) "Add task" else "Edit task")
+            Text(if (initialTask == null) context.getString(R.string.add_task) else context.getString(R.string.edit_task))
         },
         text = {
             Column(
@@ -57,17 +59,17 @@ fun TaskForm(
                         title = it
                         validationError = null
                     },
-                    label = { Text("Task title") },
+                    label = { Text(context.getString(R.string.task_title)) },
                     enabled = !saving,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 TaskChoice(
-                    label = "Subject",
+                    label = context.getString(R.string.subject),
                     selectedText = subjects.find {
                         it.subjectId == subjectId
-                    }?.name ?: "Choose a subject",
+                    }?.name ?: context.getString(R.string.choose_subject),
                     choices = subjects.map { it.subjectId to it.name },
                     enabled = !saving,
                     onSelect = {
@@ -82,7 +84,7 @@ fun TaskForm(
                         description = it
                         validationError = null
                     },
-                    label = { Text("Description (optional)") },
+                    label = { Text(context.getString(R.string.description_optional)) },
                     enabled = !saving,
                     minLines = 2,
                     maxLines = 4,
@@ -95,28 +97,27 @@ fun TaskForm(
                         dueDate = it
                         validationError = null
                     },
-                    label = { Text("Due date") },
-                    supportingText = { Text("YYYY-MM-DD, for example 2026-09-23") },
+                    label = { Text(context.getString(R.string.due_date)) },
+                    supportingText = { Text(context.getString(R.string.date_format_hint)) },
                     enabled = !saving,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 TaskChoice(
-                    label = "Priority",
-                    selectedText = priority.lowercase()
-                        .replaceFirstChar { it.uppercase() },
+                    label = context.getString(R.string.priority),
+                    selectedText = priorityText(context, priority),
                     choices = listOf(
-                        "HIGH" to "High",
-                        "MEDIUM" to "Medium",
-                        "LOW" to "Low"
+                        "HIGH" to context.getString(R.string.high),
+                        "MEDIUM" to context.getString(R.string.medium),
+                        "LOW" to context.getString(R.string.low)
                     ),
                     enabled = !saving,
                     onSelect = { priority = it }
                 )
 
                 (validationError ?: saveError)?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error)
+                    Text(messageText(context, it), color = MaterialTheme.colorScheme.error)
                 }
             }
         },
@@ -139,7 +140,7 @@ fun TaskForm(
                     }
                 }
             ) {
-                Text(if (saving) "Saving..." else "Save")
+                Text(if (saving) context.getString(R.string.saving) else context.getString(R.string.save))
             }
         },
         dismissButton = {
@@ -147,7 +148,7 @@ fun TaskForm(
                 enabled = !saving,
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text(context.getString(R.string.cancel))
             }
         }
     )

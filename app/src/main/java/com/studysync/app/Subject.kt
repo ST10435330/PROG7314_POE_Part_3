@@ -17,15 +17,15 @@ object SubjectValidator {
         val cleanName = name.trim()
 
         if (cleanName.isEmpty()) {
-            return "Enter a subject name."
+            return AppMessage.SUBJECT_NAME_REQUIRED.name
         }
 
         if (cleanName.length > 80) {
-            return "Subject names must be 80 characters or fewer."
+            return AppMessage.SUBJECT_NAME_TOO_LONG.name
         }
 
         if (lecturerName.trim().length > 80) {
-            return "Lecturer names must be 80 characters or fewer."
+            return AppMessage.LECTURER_NAME_TOO_LONG.name
         }
 
         val duplicateExists = existingSubjects.any {
@@ -34,7 +34,7 @@ object SubjectValidator {
         }
 
         if (duplicateExists) {
-            return "That subject already exists."
+            return AppMessage.SUBJECT_DUPLICATE.name
         }
 
         return null

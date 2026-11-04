@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -14,6 +15,7 @@ fun TaskProgressPanel(
     tasks: List<StudyTask>,
     subjects: List<Subject>
 ) {
+    val context = LocalContext.current
     var expanded by rememberSaveable { mutableStateOf(false) }
     val overall = TaskLogic.progress(tasks)
 
@@ -23,13 +25,15 @@ fun TaskProgressPanel(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                "Study progress",
+                context.getString(R.string.study_progress),
                 style = MaterialTheme.typography.titleMedium
             )
 
             Text(
-                "${overall.completed} of ${overall.total} tasks completed" +
-                        " · ${overall.percentage}%"
+                context.resources.getQuantityString(
+                    R.plurals.progress_overall, overall.total,
+                    overall.completed, overall.total, overall.percentage
+                )
             )
 
             LinearProgressIndicator(
@@ -40,8 +44,8 @@ fun TaskProgressPanel(
             if (subjects.isNotEmpty()) {
                 TextButton(onClick = { expanded = !expanded }) {
                     Text(
-                        if (expanded) "Hide subject progress"
-                        else "Show subject progress"
+                        if (expanded) context.getString(R.string.hide_subject_progress)
+                        else context.getString(R.string.show_subject_progress)
                     )
                 }
             }
@@ -56,8 +60,10 @@ fun TaskProgressPanel(
                     )
 
                     Text(
-                        "${progress.completed}/${progress.total} completed" +
-                                " · ${progress.percentage}%"
+                        context.resources.getQuantityString(
+                            R.plurals.progress_subject, progress.total,
+                            progress.completed, progress.total, progress.percentage
+                        )
                     )
 
                     LinearProgressIndicator(
@@ -82,29 +88,30 @@ fun TaskFiltersDialog(
     onReset: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Filter and sort") },
+        title = { Text(context.getString(R.string.filter_and_sort)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TaskChoice(
-                    label = "Subject",
+                    label = context.getString(R.string.subject),
                     selectedText = subjects.find {
                         it.subjectId == selectedSubjectId
-                    }?.name ?: "All subjects",
-                    choices = listOf("" to "All subjects") +
+                    }?.name ?: context.getString(R.string.all_subjects),
+                    choices = listOf("" to context.getString(R.string.all_subjects)) +
                             subjects.map { it.subjectId to it.name },
                     enabled = true,
                     onSelect = onSubjectChange
                 )
 
                 TaskChoice(
-                    label = "Status",
-                    selectedText = filter.label,
-                    choices = TaskFilter.entries.map { it.name to it.label },
+                    label = context.getString(R.string.status),
+                    selectedText = context.getString(filter.label),
+                    choices = TaskFilter.entries.map { it.name to context.getString(it.label) },
                     enabled = true,
                     onSelect = {
                         onFilterChange(TaskFilter.valueOf(it))
@@ -112,9 +119,9 @@ fun TaskFiltersDialog(
                 )
 
                 TaskChoice(
-                    label = "Sort order",
-                    selectedText = sort.label,
-                    choices = TaskSort.entries.map { it.name to it.label },
+                    label = context.getString(R.string.sort_order),
+                    selectedText = context.getString(sort.label),
+                    choices = TaskSort.entries.map { it.name to context.getString(it.label) },
                     enabled = true,
                     onSelect = {
                         onSortChange(TaskSort.valueOf(it))
@@ -124,12 +131,12 @@ fun TaskFiltersDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Done")
+                Text(context.getString(R.string.done))
             }
         },
         dismissButton = {
             TextButton(onClick = onReset) {
-                Text("Reset")
+                Text(context.getString(R.string.reset))
             }
         }
     )

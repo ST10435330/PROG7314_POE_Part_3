@@ -176,7 +176,7 @@ class LocalStudyStore private constructor(
             )
 
             db.update("local_meta", ContentValues().apply {
-                put("message", "Device changes saved; waiting to sync.")
+                put("message", AppMessage.SYNC_CHANGES_SAVED.name)
             }, "id=1", null)
             bumpVersion(db)
         }

@@ -18,6 +18,8 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var status by remember(userId) { mutableStateOf(LocalSyncStatus()) }
+    var cleanupCount by remember(userId) { mutableIntStateOf(0) }
+    var cleanupError by remember(userId) { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
     val jobs by remember(context, userId) {
         WorkManager.getInstance(context).getWorkInfosFlow(
@@ -29,6 +31,11 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
     LaunchedEffect(repository, dataVersion) {
         try {
             status = repository.syncStatus()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val store = LocalStudyStore.get(context, userId)
+                cleanupCount = store.attachmentCleanupCount()
+                cleanupError = store.attachmentCleanupError()
+            }
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
@@ -65,6 +72,17 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
                 else context.getString(R.string.sync_no_pending),
                 style = MaterialTheme.typography.bodySmall
             )
+            if (cleanupCount > 0) {
+                Text(context.resources.getQuantityString(R.plurals.attachment_cleanup_pending, cleanupCount, cleanupCount))
+                if (cleanupError != null) {
+                    Text(context.getString(
+                        if (cleanupError == "permission") R.string.attachment_denied else R.string.attachment_cleanup_error
+                    ), color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(onClick = { AttachmentCleanup.enqueue(context, userId, retry = true) }) {
+                    Text(context.getString(R.string.attachment_retry_cleanup))
+                }
+            }
             if (syncing) LinearProgressIndicator(Modifier.fillMaxWidth())
             status.message?.let { Text(messageText(context, it), style = MaterialTheme.typography.bodySmall) }
             if (status.rejected > 0) {

@@ -258,4 +258,51 @@
         <item quantity="one">%1$d minute</item>
         <item quantity="other">%1$d minutes</item>
     </plurals>
+
+    <!-- Private task attachments -->
+    <string name="attachment_button">Attachments</string>
+    <string name="attachment_title">Attachments: %1$s</string>
+    <string name="attachment_default_name">Attachment</string>
+    <string name="attachment_limits">PDF, JPEG, PNG or WebP. Maximum 5 MiB per file.</string>
+    <string name="attachment_add">Add attachment</string>
+    <string name="attachment_open">Open</string>
+    <string name="attachment_save_copy">Save copy</string>
+    <string name="attachment_progress">Transferred: %1$d%%</string>
+    <string name="attachment_working">Working on attachment…</string>
+    <string name="attachment_cached">Showing saved attachment information. Refresh when connected.</string>
+    <string name="attachment_retry_upload">Retry upload</string>
+    <string name="attachment_empty_list">No attachments yet.</string>
+    <string name="attachment_size">File size: %1$d KiB</string>
+    <string name="attachment_confirm_delete">Delete attachment?</string>
+    <string name="attachment_delete_prompt">Delete \"%1$s\" from your cloud storage? This cannot be undone.</string>
+    <string name="attachment_task_delete_hint">Its cloud attachments will be removed after deletion syncs. Offline cleanup waits for a connection.</string>
+    <string name="attachment_too_large">The file exceeds the 5 MiB limit.</string>
+    <string name="attachment_empty">The selected file is empty.</string>
+    <string name="attachment_bad_type">Choose a valid PDF, JPEG, PNG or WebP file.</string>
+    <string name="attachment_read_error">Could not read the selected file. Please select it again.</string>
+    <string name="attachment_sign_in">Your account changed or your session expired. Please sign in again.</string>
+    <string name="attachment_task_missing">This task is no longer on this device. Refresh your tasks.</string>
+    <string name="attachment_sync_first">This task must finish syncing before you can attach a file.</string>
+    <string name="attachment_list_error">Could not load attachments. Check your connection and retry.</string>
+    <string name="attachment_upload_error">Could not confirm the upload. Retry to check or finish the same upload.</string>
+    <string name="attachment_download_error">Could not download this attachment. Please try again.</string>
+    <string name="attachment_delete_error">Could not delete this attachment. Please try again.</string>
+    <string name="attachment_save_copy_error">Could not save the copy. Please choose a destination again.</string>
+    <string name="attachment_open_error">Could not open this attachment. Try saving a copy.</string>
+    <string name="attachment_no_viewer">No installed app can open this file. You can save a copy instead.</string>
+    <string name="attachment_denied">Storage access was denied. Check your account, Storage rules and billing setup.</string>
+    <string name="attachment_missing">This attachment no longer exists in cloud storage. Refresh the list.</string>
+    <string name="attachment_setup_error">Cloud Storage is not configured for this project. Check the bucket setup.</string>
+    <string name="attachment_quota_error">Cloud Storage is unavailable because of a quota or billing restriction.</string>
+    <string name="attachment_network_error">A connection is needed for this cloud operation. Check your internet and retry.</string>
+    <string name="attachment_cancelled">Attachment operation cancelled. Refresh to check for a completed upload.</string>
+    <string name="attachment_uploaded">Attachment uploaded privately.</string>
+    <string name="attachment_deleted">Attachment deleted.</string>
+    <string name="attachment_copy_saved">Copy saved to your chosen destination.</string>
+    <string name="attachment_cleanup_error">Attachment cleanup is waiting. Check your connection and Storage setup, then retry.</string>
+    <string name="attachment_retry_cleanup">Retry attachment cleanup</string>
+    <plurals name="attachment_cleanup_pending">
+        <item quantity="one">%1$d task awaiting attachment cleanup</item>
+        <item quantity="other">%1$d tasks awaiting attachment cleanup</item>
+    </plurals>
 </resources>

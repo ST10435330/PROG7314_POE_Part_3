@@ -35,6 +35,7 @@ class OfflineStudyRepository(
     }
 ) : StudyRepository {
     private val store = LocalStudyStore.get(context, userId)
+    private val attachmentFiles = AttachmentFiles(context.applicationContext, userId)
     private val localLock = locks.computeIfAbsent(userId) { Mutex() }
 
     val changes = store.changes
@@ -121,6 +122,9 @@ class OfflineStudyRepository(
     override suspend fun deleteTask(taskId: String) {
         write {
             store.deleteTask(taskId)
+            runCatching { attachmentFiles.clearTask(taskId) }.onFailure {
+                Log.w("StudySync", "Local attachment files will be cleared during cleanup", it)
+            }
         }
     }
 

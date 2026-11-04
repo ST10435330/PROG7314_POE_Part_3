@@ -29,7 +29,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
-fun AuthScreen(focusSessions: FocusSessionsViewModel) {
+fun AuthScreen(focusSessions: FocusSessionsViewModel, attachments: AttachmentsViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -68,7 +68,7 @@ fun AuthScreen(focusSessions: FocusSessionsViewModel) {
         }
     }
 
-    DisposableEffect(auth, biometricLock, focusSessions) {
+    DisposableEffect(auth, biometricLock, focusSessions, attachments) {
         val listener = FirebaseAuth.AuthStateListener {
             if (user?.uid != it.currentUser?.uid) {
                 biometricLock.lock()
@@ -76,6 +76,7 @@ fun AuthScreen(focusSessions: FocusSessionsViewModel) {
             }
 
             focusSessions.setUser(it.currentUser?.uid)
+            attachments.setUser(it.currentUser?.uid)
             user = it.currentUser
         }
 
@@ -94,6 +95,7 @@ fun AuthScreen(focusSessions: FocusSessionsViewModel) {
 
             biometricLock.lock()
             focusSessions.setUser(null)
+            attachments.setUser(null)
             auth.signOut()
             PushNotifications.clear(context)
             user = null
@@ -122,6 +124,19 @@ fun AuthScreen(focusSessions: FocusSessionsViewModel) {
     }
 
     val signedInUser = user
+
+    AttachmentLaunchers(
+        model = attachments,
+        unlocked = signedInUser != null && (
+            !biometricLock.isEnabled(signedInUser.uid) || biometricLock.unlockedUserId == signedInUser.uid
+        ),
+        canAccess = {
+            val account = auth.currentUser
+            account != null && (
+                !biometricLock.isEnabled(account.uid) || biometricLock.unlockedUserId == account.uid
+            )
+        }
+    )
 
     if (signedInUser == null) {
         LoginScreen(
@@ -238,6 +253,7 @@ fun AuthScreen(focusSessions: FocusSessionsViewModel) {
                 userEmail = signedInUser.email.orEmpty(),
                 biometricLock = biometricLock,
                 focusSessions = focusSessions,
+                attachments = attachments,
                 onSignOut = signOut
             )
         }

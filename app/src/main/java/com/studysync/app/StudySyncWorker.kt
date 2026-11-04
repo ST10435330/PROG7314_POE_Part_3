@@ -26,6 +26,7 @@ object StudySync {
             "${tag(userId)}-periodic", ExistingPeriodicWorkPolicy.KEEP, periodic
         )
         manager.enqueueUniqueWork(name(userId), ExistingWorkPolicy.KEEP, request(userId))
+        AttachmentCleanup.enqueue(context, userId)
     }
 
     fun enqueue(
@@ -60,6 +61,11 @@ class StudySyncWorker(context: Context, parameters: WorkerParameters) :
             upload = api::upload,
             canRun = { !isStopped && FirebaseAuth.getInstance().currentUser?.uid == userId }
         ).run()
+        try {
+            AttachmentCleanup.enqueue(applicationContext, userId)
+        } catch (exception: Exception) {
+            android.util.Log.w("StudySync", "Could not schedule attachment cleanup", exception)
+        }
         return when (outcome) {
             SyncOutcome.RETRY -> Result.retry()
             SyncOutcome.BLOCKED -> Result.failure()

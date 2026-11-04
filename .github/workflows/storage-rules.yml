@@ -1,0 +1,31 @@
+name: Private Attachment Rules
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  storage-rules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      FIREBASE_CLI_DISABLE_MOTD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tests/storage/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install test tools
+        run: npm ci --prefix tests/storage
+      - name: Run rules against local emulators
+        run: npm test --prefix tests/storage

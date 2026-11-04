@@ -80,6 +80,8 @@ class FocusSessionStoreTest {
 
     @Test
     fun concurrentCompletionSavesStillCreateOnlyOneRecord() {
+        // Create the schema before testing concurrent inserts.
+        FocusSessionStore(context).use { it.writableDatabase }
         val timer = completed()
         val executor = Executors.newFixedThreadPool(2)
         val start = CountDownLatch(1)

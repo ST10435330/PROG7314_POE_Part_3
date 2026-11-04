@@ -33,7 +33,7 @@ class LocalStudyStore private constructor(
     context.applicationContext,
     databaseName(userId),
     null,
-    2
+    3
 ) {
     private val gson = Gson()
     private val changeCounter = MutableStateFlow(0L)
@@ -90,6 +90,7 @@ class LocalStudyStore private constructor(
             "INSERT INTO local_meta(id, version) VALUES(1, 0)"
         )
 
+        createAttachmentTables(db)
         Log.d("StudySync", "Local study database created")
     }
 
@@ -98,13 +99,33 @@ class LocalStudyStore private constructor(
         oldVersion: Int,
         newVersion: Int
     ) {
-        if (oldVersion == 1 && newVersion == 2) {
-            // Preserve every existing operation ID and cached record.
+        require(oldVersion in 1..2 && newVersion == 3)
+        if (oldVersion < 2) {
             db.execSQL("ALTER TABLE outbox ADD COLUMN error TEXT")
             db.execSQL("ALTER TABLE local_meta ADD COLUMN message TEXT")
-        } else {
-            error("A database migration is required from $oldVersion to $newVersion")
         }
+        createAttachmentTables(db)
+        db.execSQL(
+            "INSERT OR REPLACE INTO attachment_cleanup(task_id,operation_id) " +
+                "SELECT record_id,operation_id FROM outbox WHERE kind='tasks' AND method='DELETE' ORDER BY sequence"
+        )
+    }
+
+    private fun createAttachmentTables(db: SQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE task_attachments (
+                task_id TEXT NOT NULL, attachment_id TEXT NOT NULL, payload TEXT NOT NULL,
+                PRIMARY KEY(task_id, attachment_id)
+            )
+        """.trimIndent())
+        db.execSQL("""
+            CREATE TABLE attachment_cleanup (
+                task_id TEXT PRIMARY KEY NOT NULL,
+                operation_id TEXT NOT NULL,
+                ready INTEGER NOT NULL DEFAULT 0 CHECK(ready IN (0,1)),
+                error TEXT
+            )
+        """.trimIndent())
     }
 
     fun getSubjects(): List<Subject> =
@@ -157,12 +178,18 @@ class LocalStudyStore private constructor(
                 putCache(db, kind, id, payload)
             }
 
+            val operationId = UUID.randomUUID().toString()
+            if (kind == "tasks" && payload == null) {
+                db.execSQL("INSERT OR REPLACE INTO attachment_cleanup(task_id,operation_id) VALUES(?,?)", arrayOf(id, operationId))
+                db.delete("task_attachments", "task_id=?", arrayOf(id))
+            }
+
             // Save the cache change and upload operation together.
             db.insertOrThrow(
                 "outbox",
                 null,
                 ContentValues().apply {
-                    put("operation_id", UUID.randomUUID().toString())
+                    put("operation_id", operationId)
                     put("kind", kind)
                     put("record_id", id)
                     put("method", if (payload == null) "DELETE" else "PUT")
@@ -238,6 +265,13 @@ class LocalStudyStore private constructor(
                 if (cursor.moveToFirst()) Triple(cursor.getString(0), cursor.getString(1), cursor.getLong(2))
                 else null
             } ?: return@mutate
+            // Only a confirmed cloud deletion makes file cleanup eligible.
+            db.execSQL("""
+                UPDATE attachment_cleanup SET ready=1, error=NULL WHERE operation_id IN (
+                    SELECT operation_id FROM outbox
+                    WHERE operation_id=? AND kind='tasks' AND method='DELETE'
+                )
+            """.trimIndent(), arrayOf(operationId))
             db.delete("outbox", """
                 operation_id=? OR
                 (kind=? AND record_id=? AND sequence<? AND error IS NOT NULL)
@@ -290,7 +324,12 @@ class LocalStudyStore private constructor(
                 val hasPending = db.rawQuery(
                     "SELECT 1 FROM outbox WHERE kind=? AND record_id=? LIMIT 1", arrayOf(kind, id)
                 ).use { it.moveToFirst() }
-                if (!hasPending) db.delete("cache", "kind=? AND record_id=?", arrayOf(kind, id))
+                if (!hasPending) {
+                    db.delete("cache", "kind=? AND record_id=?", arrayOf(kind, id))
+                    if (kind == "tasks") {
+                        db.delete("attachment_cleanup", "task_id=? AND ready=0", arrayOf(id))
+                    }
+                }
             }
             bumpVersion(db)
         }
@@ -357,6 +396,61 @@ class LocalStudyStore private constructor(
             .forEach { (id, payload) ->
                 putCache(db, kind, id, payload)
             }
+    }
+
+    fun attachments(taskId: String): List<TaskAttachment> = writableDatabase.rawQuery(
+        "SELECT payload FROM task_attachments WHERE task_id=? ORDER BY attachment_id", arrayOf(taskId)
+    ).use { cursor -> buildList {
+        while (cursor.moveToNext()) add(gson.fromJson(cursor.getString(0), TaskAttachment::class.java))
+    } }
+
+    fun cacheAttachments(taskId: String, attachments: List<TaskAttachment>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val exists = db.rawQuery(
+                "SELECT 1 FROM cache WHERE kind='tasks' AND record_id=?", arrayOf(taskId)
+            ).use { it.moveToFirst() }
+            if (exists) {
+                db.delete("task_attachments", "task_id=?", arrayOf(taskId))
+                attachments.forEach { attachment ->
+                    require(attachment.taskId == taskId)
+                    db.insertOrThrow("task_attachments", null, ContentValues().apply {
+                        put("task_id", taskId)
+                        put("attachment_id", attachment.id)
+                        put("payload", gson.toJson(attachment))
+                    })
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+
+    fun attachmentCleanupTasks(): List<String> = writableDatabase.rawQuery(
+        "SELECT task_id FROM attachment_cleanup WHERE ready=1 ORDER BY task_id LIMIT 100", null
+    ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+
+    fun attachmentCleanupCount(): Int = writableDatabase.rawQuery(
+        "SELECT COUNT(*) FROM attachment_cleanup", null
+    ).use { it.moveToFirst(); it.getInt(0) }
+
+    fun attachmentCleanupError(): String? = writableDatabase.rawQuery(
+        "SELECT error FROM attachment_cleanup WHERE error IS NOT NULL LIMIT 1", null
+    ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+    fun attachmentCleanupToken(taskId: String): String? = writableDatabase.rawQuery(
+        "SELECT operation_id FROM attachment_cleanup WHERE task_id=? AND ready=1", arrayOf(taskId)
+    ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+    fun failAttachmentCleanup(taskId: String, error: String, token: String? = attachmentCleanupToken(taskId)) {
+        writableDatabase.update("attachment_cleanup", ContentValues().apply { put("error", error) },
+            "task_id=? AND ready=1 AND operation_id=?", arrayOf(taskId, token))
+        changeCounter.update { it + 1 }
+    }
+
+    fun finishAttachmentCleanup(taskId: String, token: String? = attachmentCleanupToken(taskId)) {
+        writableDatabase.delete("attachment_cleanup", "task_id=? AND ready=1 AND operation_id=?", arrayOf(taskId, token))
+        changeCounter.update { it + 1 }
     }
 
     private fun readPayloads(kind: String): List<String> =

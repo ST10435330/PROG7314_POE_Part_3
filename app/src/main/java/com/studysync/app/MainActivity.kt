@@ -41,7 +41,8 @@ class MainActivity : AppCompatActivity() {
                 )
             ) {
                 AuthScreen(
-                    focusSessions = ViewModelProvider(this@MainActivity)[FocusSessionsViewModel::class.java]
+                    focusSessions = ViewModelProvider(this@MainActivity)[FocusSessionsViewModel::class.java],
+                    attachments = ViewModelProvider(this@MainActivity)[AttachmentsViewModel::class.java]
                 )
             }
         }
@@ -55,6 +56,7 @@ fun StudySyncScreen(
     userEmail: String,
     biometricLock: BiometricLock,
     focusSessions: FocusSessionsViewModel,
+    attachments: AttachmentsViewModel,
     onSignOut: () -> Unit
 ) {
     val context = LocalContext.current
@@ -183,7 +185,8 @@ fun StudySyncScreen(
                         0 -> TasksScreen(
                             repository = repository,
                             settings = currentSettings,
-                            dataVersion = dataVersion
+                            dataVersion = dataVersion,
+                            attachments = attachments
                         )
 
                         1 -> SubjectsScreen(

@@ -255,4 +255,51 @@
         <item quantity="one">Umzuzu oyi-%1$d</item>
         <item quantity="other">Imizuzu eyi-%1$d</item>
     </plurals>
+
+    <!-- Private task attachments -->
+    <string name="attachment_button">Okunamathiselwe</string>
+    <string name="attachment_title">Okunamathiselwe: %1$s</string>
+    <string name="attachment_default_name">Ifayela elinamathiselwe</string>
+    <string name="attachment_limits">I-PDF, i-JPEG, i-PNG noma i-WebP. Ifayela ngalinye lingafika ku-5 MiB.</string>
+    <string name="attachment_add">Engeza ifayela</string>
+    <string name="attachment_open">Vula</string>
+    <string name="attachment_save_copy">Londoloza ikhophi</string>
+    <string name="attachment_progress">Okudlulisiwe: %1$d%%</string>
+    <string name="attachment_working">Kusetshenzwa ngefayela…</string>
+    <string name="attachment_cached">Kuboniswa imininingwane egciniwe yamafayela. Vuselela uma usuxhumekile.</string>
+    <string name="attachment_retry_upload">Zama ukuthumela futhi</string>
+    <string name="attachment_empty_list">Awekho amafayela anamathiselwe okwamanje.</string>
+    <string name="attachment_size">Ubukhulu befayela: %1$d KiB</string>
+    <string name="attachment_confirm_delete">Susa ifayela elinamathiselwe?</string>
+    <string name="attachment_delete_prompt">Susa i-\"%1$s\" endaweni yakho yokugcina amafayela efwini? Lokhu akunakuhlehliswa.</string>
+    <string name="attachment_task_delete_hint">Amafayela ayo asefwini azosuswa ngemva kokuvumelanisa ukususa. Ukuhlanza kulinda ukuxhumeka uma ungaxhunyiwe.</string>
+    <string name="attachment_too_large">Ifayela lidlula umkhawulo we-5 MiB.</string>
+    <string name="attachment_empty">Ifayela elikhethiwe alinalutho.</string>
+    <string name="attachment_bad_type">Khetha ifayela elivumelekile le-PDF, i-JPEG, i-PNG noma i-WebP.</string>
+    <string name="attachment_read_error">Ifayela elikhethiwe alifundekanga. Sicela ulikhethe futhi.</string>
+    <string name="attachment_sign_in">I-akhawunti yakho ishintshile noma iseshini yakho iphelelwe isikhathi. Sicela ungene futhi.</string>
+    <string name="attachment_task_missing">Lo msebenzi awusekho kule divayisi. Vuselela imisebenzi yakho.</string>
+    <string name="attachment_sync_first">Lo msebenzi kufanele uqede ukuvumelanisa ngaphambi kokunamathisela ifayela.</string>
+    <string name="attachment_list_error">Amafayela anamathiselwe awalayishekanga. Hlola ukuxhumeka kwakho bese uzama futhi.</string>
+    <string name="attachment_upload_error">Ukuthumela akuqinisekisekanga. Zama futhi ukuze uhlole noma uqede ukuthumela okufanayo.</string>
+    <string name="attachment_download_error">Leli fayela alilandekanga. Sicela uzame futhi.</string>
+    <string name="attachment_delete_error">Leli fayela alisusekanga. Sicela uzame futhi.</string>
+    <string name="attachment_save_copy_error">Ikhophi ayilondolozekanga. Sicela ukhethe indawo futhi.</string>
+    <string name="attachment_open_error">Leli fayela alivuleki. Zama ukulondoloza ikhophi.</string>
+    <string name="attachment_no_viewer">Alukho uhlelo olufakiwe olungavula leli fayela. Ungalondoloza ikhophi esikhundleni salokho.</string>
+    <string name="attachment_denied">Ukufinyelela endaweni yokugcina amafayela kunqatshiwe. Hlola i-akhawunti yakho, imithetho ye-Storage nokusethwa kokukhokha.</string>
+    <string name="attachment_missing">Leli fayela alisekho endaweni yokugcina amafayela efwini. Vuselela uhlu.</string>
+    <string name="attachment_setup_error">I-Cloud Storage ayikasethelwa le phrojekthi. Hlola ukusethwa kwebhakede lokugcina.</string>
+    <string name="attachment_quota_error">I-Cloud Storage ayitholakali ngenxa yomkhawulo wokusetshenziswa noma wokukhokha.</string>
+    <string name="attachment_network_error">Lesi senzo sasefwini sidinga ukuxhumeka. Hlola i-inthanethi yakho bese uzama futhi.</string>
+    <string name="attachment_cancelled">Isenzo sefayela sikhanseliwe. Vuselela ukuze uhlole ukuthi ukuthumela kuqediwe yini.</string>
+    <string name="attachment_uploaded">Ifayela lithunyelwe ngokuyimfihlo.</string>
+    <string name="attachment_deleted">Ifayela lisusiwe.</string>
+    <string name="attachment_copy_saved">Ikhophi ilondolozwe endaweni oyikhethile.</string>
+    <string name="attachment_cleanup_error">Ukuhlanzwa kwamafayela kulindile. Hlola ukuxhumeka kwakho nokusethwa kwe-Storage, bese uzama futhi.</string>
+    <string name="attachment_retry_cleanup">Zama ukuhlanza amafayela futhi</string>
+    <plurals name="attachment_cleanup_pending">
+        <item quantity="one">Umsebenzi oyi-%1$d ulinde ukuhlanzwa kwamafayela</item>
+        <item quantity="other">Imisebenzi eyi-%1$d ilinde ukuhlanzwa kwamafayela</item>
+    </plurals>
 </resources>

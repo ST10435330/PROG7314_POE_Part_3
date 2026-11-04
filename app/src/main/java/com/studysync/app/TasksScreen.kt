@@ -19,7 +19,8 @@ import kotlinx.coroutines.delay
 fun TasksScreen(
     repository: StudyRepository,
     settings: AppSettings,
-    dataVersion: Long = 0L
+    dataVersion: Long = 0L,
+    attachments: AttachmentsViewModel
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -317,6 +318,11 @@ fun TasksScreen(
                                 }
                             }
 
+                            TextButton(
+                                enabled = !saving,
+                                onClick = { attachments.openTask(task.taskId) }
+                            ) { Text(context.getString(R.string.attachment_button)) }
+
                             Row {
                                 TextButton(
                                     enabled = !saving,
@@ -348,6 +354,14 @@ fun TasksScreen(
             }
         }
     }
+
+    val attachmentTask = tasks.find { it.taskId == attachments.taskId }
+    LaunchedEffect(loading, attachmentTask, attachments.taskId) {
+        if (!loading && loadError == null && attachments.taskId != null && attachmentTask == null) {
+            attachments.closeTask()
+        }
+    }
+    if (attachmentTask != null) TaskAttachmentsDialog(attachmentTask, attachments)
 
     if (showForm && !loading && loadError == null) {
         TaskForm(
@@ -439,6 +453,8 @@ fun TasksScreen(
                     Text(
                         context.getString(R.string.delete_task_message, taskToDelete.title)
                     )
+
+                    Text(context.getString(R.string.attachment_task_delete_hint))
 
                     deleteError?.let {
                         Text(messageText(context, it), color = MaterialTheme.colorScheme.error)

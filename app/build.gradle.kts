@@ -18,6 +18,12 @@ android {
     }
 
     buildFeatures { compose = true }
+    bundle {
+        language {
+            // Keep both languages available when the device is offline.
+            enableSplit = false
+        }
+    }
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
@@ -38,6 +44,7 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
     implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-storage")
     implementation("com.google.firebase:firebase-messaging")
 
     implementation("androidx.credentials:credentials:1.3.0")

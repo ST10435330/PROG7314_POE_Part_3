@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var subjects by remember {
@@ -58,7 +60,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
         } catch (exception: Exception) {
             loadError = apiErrorMessage(
                 exception,
-                "Could not load subjects. Please try again."
+                AppMessage.SUBJECTS_LOAD_ERROR.name
             )
             Log.e("StudySync", "Subject loading failed", exception)
         } finally {
@@ -73,7 +75,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
     ) {
         item {
             Text(
-                "My subjects",
+                context.getString(R.string.my_subjects),
                 style = MaterialTheme.typography.headlineMedium
             )
         }
@@ -82,18 +84,18 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
             loading -> {
                 item {
                     CircularProgressIndicator()
-                    Text("Loading subjects...")
+                    Text(context.getString(R.string.loading_subjects))
                 }
             }
 
             loadError != null -> {
                 item {
                     Text(
-                        loadError ?: "",
+                        messageText(context, loadError.orEmpty()),
                         color = MaterialTheme.colorScheme.error
                     )
                     TextButton(onClick = { reloadKey++ }) {
-                        Text("Retry")
+                        Text(context.getString(R.string.retry))
                     }
                 }
             }
@@ -113,20 +115,20 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                                 showForm = true
                             }
                         ) {
-                            Text("Add subject")
+                            Text(context.getString(R.string.add_subject))
                         }
 
                         TextButton(
                             enabled = !saving,
                             onClick = { reloadKey++ }
                         ) {
-                            Text("Refresh")
+                            Text(context.getString(R.string.refresh))
                         }
                     }
                 }
 
                 if (subjects.isEmpty()) {
-                    item { Text("No subjects yet.") }
+                    item { Text(context.getString(R.string.no_subjects)) }
                 }
 
                 items(subjects, key = { it.subjectId }) { subject ->
@@ -155,7 +157,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                                         showForm = true
                                     }
                                 ) {
-                                    Text("Edit")
+                                    Text(context.getString(R.string.edit))
                                 }
 
                                 TextButton(
@@ -166,7 +168,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                                     }
                                 ) {
                                     Text(
-                                        "Delete",
+                                        context.getString(R.string.delete),
                                         color = MaterialTheme.colorScheme.error
                                     )
                                 }
@@ -184,7 +186,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                 if (!saving) showForm = false
             },
             title = {
-                Text(if (editingId == null) "Add subject" else "Edit subject")
+                Text(if (editingId == null) context.getString(R.string.add_subject) else context.getString(R.string.edit_subject))
             },
             text = {
                 Column(
@@ -197,7 +199,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                             name = it
                             formError = null
                         },
-                        label = { Text("Subject name") },
+                        label = { Text(context.getString(R.string.subject_name)) },
                         enabled = !saving,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -209,14 +211,14 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                             lecturerName = it
                             formError = null
                         },
-                        label = { Text("Lecturer name (optional)") },
+                        label = { Text(context.getString(R.string.lecturer_name)) },
                         enabled = !saving,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     formError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error)
+                        Text(messageText(context, it), color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
@@ -262,7 +264,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                                 } catch (exception: Exception) {
                                     formError = apiErrorMessage(
                                         exception,
-                                        "Could not save this subject."
+                                        AppMessage.SUBJECT_SAVE_ERROR.name
                                     )
                                     Log.e("StudySync", "Subject save failed", exception)
                                 } finally {
@@ -272,7 +274,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                         }
                     }
                 ) {
-                    Text(if (saving) "Saving..." else "Save")
+                    Text(if (saving) context.getString(R.string.saving) else context.getString(R.string.save))
                 }
             },
             dismissButton = {
@@ -280,7 +282,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                     enabled = !saving,
                     onClick = { showForm = false }
                 ) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.cancel))
                 }
             }
         )
@@ -295,15 +297,15 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
             onDismissRequest = {
                 if (!saving) pendingDeleteId = null
             },
-            title = { Text("Delete subject?") },
+            title = { Text(context.getString(R.string.delete_subject_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Delete ${subjectToDelete.name}? This cannot be undone."
+                        context.getString(R.string.delete_subject_message, subjectToDelete.name)
                     )
 
                     deleteError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error)
+                        Text(messageText(context, it), color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
@@ -332,7 +334,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                                 } catch (exception: Exception) {
                                     deleteError = apiErrorMessage(
                                         exception,
-                                        "Could not delete this subject."
+                                        AppMessage.SUBJECT_DELETE_ERROR.name
                                     )
                                     Log.e("StudySync", "Subject deletion failed", exception)
                                 } finally {
@@ -343,7 +345,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                     }
                 ) {
                     Text(
-                        if (saving) "Deleting..." else "Delete",
+                        if (saving) context.getString(R.string.deleting) else context.getString(R.string.delete),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
@@ -353,7 +355,7 @@ fun SubjectsScreen(repository: StudyRepository, dataVersion: Long = 0L) {
                     enabled = !saving,
                     onClick = { pendingDeleteId = null }
                 ) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.cancel))
                 }
             }
         )

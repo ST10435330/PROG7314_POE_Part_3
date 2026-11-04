@@ -36,6 +36,7 @@ fun BiometricLockScreen(
     biometricLock: BiometricLock,
     onUseGoogle: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -49,29 +50,28 @@ fun BiometricLockScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "StudySync is locked",
+            context.getString(R.string.biometric_locked),
             style = MaterialTheme.typography.headlineMedium
         )
 
-        Text("Verify your identity to open your study planner.")
+        Text(context.getString(R.string.biometric_unlock_hint))
 
         BiometricActionButton(
             userId = userId,
             biometricLock = biometricLock,
             action = BiometricLock.Action.UNLOCK,
-            label = "Unlock with biometrics"
+            label = context.getString(R.string.unlock_biometrics)
         )
 
         OutlinedButton(
             onClick = onUseGoogle,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Use Google sign-in instead")
+            Text(context.getString(R.string.use_google))
         }
 
         Text(
-            "Google recovery signs you out first. After signing in, " +
-                    "enable biometric protection again in Settings.",
+            context.getString(R.string.biometric_recovery_hint),
             style = MaterialTheme.typography.bodySmall
         )
     }
@@ -82,19 +82,19 @@ fun BiometricSettings(
     userId: String,
     biometricLock: BiometricLock
 ) {
+    val context = LocalContext.current
     val enabled = biometricLock.isEnabled(userId)
 
     Text(
-        "Biometric protection",
+        context.getString(R.string.biometric_protection),
         style = MaterialTheme.typography.titleMedium
     )
 
     Text(
         if (enabled) {
-            "Enabled for this account on this device."
+            context.getString(R.string.biometric_enabled)
         } else {
-            "Use a fingerprint or supported strong face recognition " +
-                    "when reopening the app."
+            context.getString(R.string.biometric_description)
         }
     )
 
@@ -107,15 +107,14 @@ fun BiometricSettings(
             BiometricLock.Action.ENABLE
         },
         label = if (enabled) {
-            "Disable biometric protection"
+            context.getString(R.string.disable_biometrics)
         } else {
-            "Enable biometric protection"
+            context.getString(R.string.enable_biometrics)
         }
     )
 
     Text(
-        "Changing this setting requires biometric verification. " +
-                "Restore defaults changes task preferences only.",
+        context.getString(R.string.biometric_settings_hint),
         style = MaterialTheme.typography.bodySmall
     )
 }
@@ -143,7 +142,7 @@ private fun BiometricActionButton(
 
             if (activity == null) {
                 error =
-                    "Could not open biometric verification. Please reopen the app."
+                    AppMessage.BIOMETRIC_OPEN_ERROR.name
             } else {
                 busy = true
 
@@ -164,11 +163,11 @@ private fun BiometricActionButton(
         }
     ) {
         Text(
-            if (busy) "Waiting for verification..." else label
+            if (busy) context.getString(R.string.waiting_verification) else label
         )
     }
 
     error?.let {
-        Text(it, color = MaterialTheme.colorScheme.error)
+        Text(messageText(context, it), color = MaterialTheme.colorScheme.error)
     }
 }

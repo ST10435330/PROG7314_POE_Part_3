@@ -18,6 +18,8 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var status by remember(userId) { mutableStateOf(LocalSyncStatus()) }
+    var cleanupCount by remember(userId) { mutableIntStateOf(0) }
+    var cleanupError by remember(userId) { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
     val jobs by remember(context, userId) {
         WorkManager.getInstance(context).getWorkInfosFlow(
@@ -29,10 +31,15 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
     LaunchedEffect(repository, dataVersion) {
         try {
             status = repository.syncStatus()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val store = LocalStudyStore.get(context, userId)
+                cleanupCount = store.attachmentCleanupCount()
+                cleanupError = store.attachmentCleanupError()
+            }
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            status = status.copy(message = "Could not read the sync status.")
+            status = status.copy(message = AppMessage.SYNC_STATUS_ERROR.name)
             Log.e("StudySync", "Sync status loading failed", exception)
         }
     }
@@ -40,7 +47,7 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
         try {
             StudySync.start(context, userId)
         } catch (exception: Exception) {
-            status = status.copy(message = "Could not start background sync. Try Sync now.")
+            status = status.copy(message = AppMessage.SYNC_START_ERROR.name)
             Log.e("StudySync", "Sync scheduling failed", exception)
         }
     }
@@ -50,7 +57,7 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
             try { action() }
             catch (exception: CancellationException) { throw exception }
             catch (exception: Exception) {
-                status = status.copy(message = apiErrorMessage(exception, "Could not update sync. Please retry."))
+                status = status.copy(message = apiErrorMessage(exception, AppMessage.SYNC_UPDATE_ERROR.name))
             }
         }
     }
@@ -61,23 +68,34 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                if (status.pending > 0) "${status.pending} device changes waiting to sync"
-                else "No device changes waiting to upload.",
+                if (status.pending > 0) context.resources.getQuantityString(R.plurals.sync_pending, status.pending, status.pending)
+                else context.getString(R.string.sync_no_pending),
                 style = MaterialTheme.typography.bodySmall
             )
+            if (cleanupCount > 0) {
+                Text(context.resources.getQuantityString(R.plurals.attachment_cleanup_pending, cleanupCount, cleanupCount))
+                if (cleanupError != null) {
+                    Text(context.getString(
+                        if (cleanupError == "permission") R.string.attachment_denied else R.string.attachment_cleanup_error
+                    ), color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(onClick = { AttachmentCleanup.enqueue(context, userId, retry = true) }) {
+                    Text(context.getString(R.string.attachment_retry_cleanup))
+                }
+            }
             if (syncing) LinearProgressIndicator(Modifier.fillMaxWidth())
-            status.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            status.message?.let { Text(messageText(context, it), style = MaterialTheme.typography.bodySmall) }
             if (status.rejected > 0) {
-                Text("${status.rejected} changes need attention.", color = MaterialTheme.colorScheme.error)
-                status.rejection?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                Text(context.resources.getQuantityString(R.plurals.sync_rejected, status.rejected, status.rejected), color = MaterialTheme.colorScheme.error)
+                status.rejection?.let { Text(rejectionText(context, it), color = MaterialTheme.colorScheme.error) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(enabled = !syncing, onClick = { perform { repository.retrySync() } }) {
-                    Text("Sync now")
+                    Text(context.getString(R.string.sync_now))
                 }
                 if (status.rejected > 0) {
                     TextButton(enabled = !syncing, onClick = { confirmDiscard = true }) {
-                        Text("Discard rejected changes")
+                        Text(context.getString(R.string.discard_rejected))
                     }
                 }
             }
@@ -86,16 +104,16 @@ fun SyncStatusCard(repository: OfflineStudyRepository, userId: String, dataVersi
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Discard rejected changes?") },
-            text = { Text("Rejected device edits will be removed and cloud versions loaded when connected. Other queued changes are kept.") },
+            title = { Text(context.getString(R.string.discard_rejected_title)) },
+            text = { Text(context.getString(R.string.discard_rejected_hint)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDiscard = false
                     perform { repository.discardRejected() }
-                }) { Text("Discard") }
+                }) { Text(context.getString(R.string.discard)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmDiscard = false }) { Text(context.getString(R.string.cancel)) }
             }
         )
     }

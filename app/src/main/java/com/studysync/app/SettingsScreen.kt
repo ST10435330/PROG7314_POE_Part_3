@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -19,6 +20,7 @@ fun SettingsScreen(
     onSettingsChange: (AppSettings) -> Unit,
     accountEmail: String = ""
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -27,12 +29,34 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            "Settings",
+            context.getString(R.string.settings),
             style = MaterialTheme.typography.headlineMedium
         )
         if (accountEmail.isNotBlank()) {
-            Text("Signed in as $accountEmail")
+            Text(context.getString(R.string.signed_in_as, accountEmail))
         }
+
+        TaskChoice(
+            label = context.getString(R.string.language),
+            selectedText = context.getString(
+                if (settings.language == "zu") R.string.isizulu else R.string.english
+            ),
+            choices = listOf(
+                "en" to context.getString(R.string.english),
+                "zu" to context.getString(R.string.isizulu)
+            ),
+            enabled = !saving,
+            onSelect = { language ->
+                onSettingsChange(settings.copy(language = language))
+            }
+        )
+
+        Text(
+            context.getString(R.string.language_hint),
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        HorizontalDivider()
 
         BiometricSettings(
             userId = userId,
@@ -45,16 +69,15 @@ fun SettingsScreen(
 
         HorizontalDivider()
 
-        Text("Choose how you organise your study tasks.")
+        Text(context.getString(R.string.settings_description))
 
         TaskChoice(
-            label = "Default task priority",
-            selectedText = settings.defaultPriority.lowercase()
-                .replaceFirstChar { it.uppercase() },
+            label = context.getString(R.string.default_priority),
+            selectedText = priorityText(context, settings.defaultPriority),
             choices = listOf(
-                "HIGH" to "High",
-                "MEDIUM" to "Medium",
-                "LOW" to "Low"
+                "HIGH" to context.getString(R.string.high),
+                "MEDIUM" to context.getString(R.string.medium),
+                "LOW" to context.getString(R.string.low)
             ),
             enabled = !saving,
             onSelect = { priority ->
@@ -65,16 +88,16 @@ fun SettingsScreen(
         )
 
         Text(
-            "Used when adding a new task. Existing tasks keep their priority.",
+            context.getString(R.string.default_priority_hint),
             style = MaterialTheme.typography.bodySmall
         )
 
         HorizontalDivider()
 
         TaskChoice(
-            label = "Preferred task sorting",
-            selectedText = settings.defaultSort.label,
-            choices = TaskSort.entries.map { it.name to it.label },
+            label = context.getString(R.string.default_sort),
+            selectedText = context.getString(settings.defaultSort.label),
+            choices = TaskSort.entries.map { it.name to context.getString(it.label) },
             enabled = !saving,
             onSelect = { sort ->
                 onSettingsChange(
@@ -84,37 +107,36 @@ fun SettingsScreen(
         )
 
         Text(
-            "Used when opening the Tasks tab. You can temporarily change " +
-                    "the order using Filter and sort.",
+            context.getString(R.string.default_sort_hint),
             style = MaterialTheme.typography.bodySmall
         )
 
         HorizontalDivider()
 
-        Text("Changes save automatically on this device.")
+        Text(context.getString(R.string.auto_save_hint))
 
         if (saving) {
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth()
             )
-            Text("Saving settings...")
+            Text(context.getString(R.string.saving_settings))
         }
 
         error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error)
+            Text(messageText(context, it), color = MaterialTheme.colorScheme.error)
         }
 
         message?.let {
-            Text(it, color = MaterialTheme.colorScheme.primary)
+            Text(messageText(context, it), color = MaterialTheme.colorScheme.primary)
         }
 
         OutlinedButton(
-            enabled = !saving && settings != AppSettings(),
+            enabled = !saving && settings != settings.restoreTaskDefaults(),
             onClick = {
-                onSettingsChange(AppSettings())
+                onSettingsChange(settings.restoreTaskDefaults())
             }
         ) {
-            Text("Restore defaults")
+            Text(context.getString(R.string.restore_defaults))
         }
     }
 }

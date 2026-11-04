@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -18,8 +19,10 @@ import kotlinx.coroutines.delay
 fun TasksScreen(
     repository: StudyRepository,
     settings: AppSettings,
-    dataVersion: Long = 0L
+    dataVersion: Long = 0L,
+    attachments: AttachmentsViewModel
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var subjects by remember { mutableStateOf<List<Subject>>(emptyList()) }
@@ -100,7 +103,7 @@ fun TasksScreen(
         } catch (exception: Exception) {
             loadError = apiErrorMessage(
                 exception,
-                "Could not load your tasks. Please try again."
+                AppMessage.TASKS_LOAD_ERROR.name
             )
             Log.e("StudySync", "Task loading failed", exception)
         } finally {
@@ -121,7 +124,7 @@ fun TasksScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("My tasks", style = MaterialTheme.typography.headlineMedium)
+            Text(context.getString(R.string.my_tasks), style = MaterialTheme.typography.headlineMedium)
         }
 
         when {
@@ -132,11 +135,11 @@ fun TasksScreen(
             loadError != null -> {
                 item {
                     Text(
-                        loadError ?: "",
+                        messageText(context, loadError.orEmpty()),
                         color = MaterialTheme.colorScheme.error
                     )
                     TextButton(onClick = { reloadKey++ }) {
-                        Text("Retry")
+                        Text(context.getString(R.string.retry))
                     }
                 }
             }
@@ -154,7 +157,7 @@ fun TasksScreen(
                             enabled = !saving,
                             onClick = { showFilters = true }
                         ) {
-                            Text("Filter and sort")
+                            Text(context.getString(R.string.filter_and_sort))
                         }
                         TextButton(
                             enabled = !saving,
@@ -163,12 +166,14 @@ fun TasksScreen(
                                 reloadKey++
                             }
                         ) {
-                            Text("Refresh")
+                            Text(context.getString(R.string.refresh))
                         }
 
                         Text(
-                            "${visibleTasks.size} of ${tasks.size} tasks shown" +
-                                    " · ${filter.label}"
+                            context.resources.getQuantityString(
+                                R.plurals.tasks_shown, tasks.size,
+                                visibleTasks.size, tasks.size, context.getString(filter.label)
+                            )
                         )
                     }
 
@@ -189,21 +194,21 @@ fun TasksScreen(
                                 showForm = true
                             }
                         ) {
-                            Text("Add task")
+                            Text(context.getString(R.string.add_task))
                         }
                     }
 
                 if (subjects.isEmpty()) {
                     item {
-                        Text("Add a subject in the Subjects tab before creating a task.")
+                        Text(context.getString(R.string.subject_required_first))
                     }
                 } else if (tasks.isEmpty()) {
                     item {
-                        Text("No tasks yet. Add your first study task.")
+                        Text(context.getString(R.string.no_tasks))
                     }
                 } else if (visibleTasks.isEmpty()) {
                     item {
-                        Text("No tasks match your filters.")
+                        Text(context.getString(R.string.no_filtered_tasks))
                     }
                 }
 
@@ -221,27 +226,28 @@ fun TasksScreen(
                             Text(
                                 subjects.find {
                                     it.subjectId == task.subjectId
-                                }?.name ?: "Subject unavailable"
+                                }?.name ?: context.getString(R.string.subject_unavailable)
                             )
 
                             if (task.description.isNotBlank()) {
                                 Text(task.description)
                             }
 
-                            Text("Due: ${task.dueDate}")
+                            Text(context.getString(R.string.task_due, task.dueDate))
 
                             Text(
-                                "Priority: " + task.priority.lowercase()
-                                    .replaceFirstChar { it.uppercase() }
+                                context.getString(R.string.task_priority, priorityText(context, task.priority))
                             )
 
                             Text(
-                                if (task.completed) "Completed" else "Pending"
+                                context.getString(
+                                    if (task.completed) R.string.completed else R.string.pending
+                                )
                             )
 
                             if (TaskLogic.isOverdue(task, today)) {
                                 Text(
-                                    "Overdue",
+                                    context.getString(R.string.overdue),
                                     color = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -282,7 +288,7 @@ fun TasksScreen(
                                             } catch (exception: Exception) {
                                                 completionError = task.taskId to apiErrorMessage(
                                                     exception,
-                                                    "Could not update this task. Please refresh and try again."
+                                                    AppMessage.TASK_UPDATE_ERROR.name
                                                 )
 
                                                 Log.e(
@@ -298,19 +304,24 @@ fun TasksScreen(
                                 }
                             ) {
                                 Text(
-                                    if (task.completed) "Reopen task"
-                                    else "Mark complete"
+                                    if (task.completed) context.getString(R.string.reopen_task)
+                                    else context.getString(R.string.mark_complete)
                                 )
                             }
 
                             completionError?.let { (failedId, message) ->
                                 if (failedId == task.taskId) {
                                     Text(
-                                        message,
+                                        messageText(context, message),
                                         color = MaterialTheme.colorScheme.error
                                     )
                                 }
                             }
+
+                            TextButton(
+                                enabled = !saving,
+                                onClick = { attachments.openTask(task.taskId) }
+                            ) { Text(context.getString(R.string.attachment_button)) }
 
                             Row {
                                 TextButton(
@@ -321,7 +332,7 @@ fun TasksScreen(
                                         showForm = true
                                     }
                                 ) {
-                                    Text("Edit")
+                                    Text(context.getString(R.string.edit))
                                 }
 
                                 TextButton(
@@ -332,7 +343,7 @@ fun TasksScreen(
                                     }
                                 ) {
                                     Text(
-                                        "Delete",
+                                        context.getString(R.string.delete),
                                         color = MaterialTheme.colorScheme.error
                                     )
                                 }
@@ -343,6 +354,14 @@ fun TasksScreen(
             }
         }
     }
+
+    val attachmentTask = tasks.find { it.taskId == attachments.taskId }
+    LaunchedEffect(loading, attachmentTask, attachments.taskId) {
+        if (!loading && loadError == null && attachments.taskId != null && attachmentTask == null) {
+            attachments.closeTask()
+        }
+    }
+    if (attachmentTask != null) TaskAttachmentsDialog(attachmentTask, attachments)
 
     if (showForm && !loading && loadError == null) {
         TaskForm(
@@ -387,7 +406,7 @@ fun TasksScreen(
                         } catch (exception: Exception) {
                             saveError = apiErrorMessage(
                                 exception,
-                                "Could not save your task. Please try again."
+                                AppMessage.TASK_SAVE_ERROR.name
                             )
 
                             Log.e("StudySync", "Task save failed", exception)
@@ -428,15 +447,17 @@ fun TasksScreen(
                     deleteError = null
                 }
             },
-            title = { Text("Delete task?") },
+            title = { Text(context.getString(R.string.delete_task_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Delete \"${taskToDelete.title}\"? This cannot be undone."
+                        context.getString(R.string.delete_task_message, taskToDelete.title)
                     )
 
+                    Text(context.getString(R.string.attachment_task_delete_hint))
+
                     deleteError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error)
+                        Text(messageText(context, it), color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
@@ -463,7 +484,7 @@ fun TasksScreen(
                                 } catch (exception: Exception) {
                                     deleteError = apiErrorMessage(
                                         exception,
-                                        "Could not delete your task. Please try again."
+                                        AppMessage.TASK_DELETE_ERROR.name
                                     )
 
                                     Log.e(
@@ -479,7 +500,7 @@ fun TasksScreen(
                     }
                 ) {
                     Text(
-                        if (saving) "Deleting..." else "Delete",
+                        if (saving) context.getString(R.string.deleting) else context.getString(R.string.delete),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
@@ -492,7 +513,7 @@ fun TasksScreen(
                         deleteError = null
                     }
                 ) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.cancel))
                 }
             }
         )

@@ -13,3 +13,7 @@ server/.env
 *.download
 *.log
 .DS_Store
+/google-services.json
+
+tests/storage/node_modules/
+.kotlin/

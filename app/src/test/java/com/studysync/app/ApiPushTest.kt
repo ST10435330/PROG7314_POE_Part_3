@@ -100,7 +100,7 @@ class ApiPushTest {
         } catch (error: ApiException) {
             assertEquals(410, error.statusCode)
             assertFalse(error.retryable)
-            assertTrue(error.message!!.contains("registration expired"))
+            assertEquals(AppMessage.DEVICE_REGISTRATION_EXPIRED.name, error.message)
         }
     }
 }

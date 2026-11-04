@@ -35,6 +35,7 @@ class OfflineStudyRepository(
     }
 ) : StudyRepository {
     private val store = LocalStudyStore.get(context, userId)
+    private val attachmentFiles = AttachmentFiles(context.applicationContext, userId)
     private val localLock = locks.computeIfAbsent(userId) { Mutex() }
 
     val changes = store.changes
@@ -65,7 +66,7 @@ class OfflineStudyRepository(
                 it.subjectId == subject.subjectId
             }
         ) {
-            "This subject is no longer on this device. Refresh the list."
+            AppMessage.SUBJECT_MISSING.name
         }
 
         val saved = subject.copy(
@@ -85,7 +86,7 @@ class OfflineStudyRepository(
                     it.subjectId == subjectId
                 }
             ) {
-                "Delete or move this subject's tasks first."
+                AppMessage.SUBJECT_HAS_TASKS.name
             }
 
             store.deleteSubject(subjectId)
@@ -108,7 +109,7 @@ class OfflineStudyRepository(
                 it.taskId == task.taskId
             }
         ) {
-            "This task is no longer on this device. Refresh the list."
+            AppMessage.TASK_MISSING.name
         }
 
         val saved = cleanTask(task)
@@ -121,6 +122,9 @@ class OfflineStudyRepository(
     override suspend fun deleteTask(taskId: String) {
         write {
             store.deleteTask(taskId)
+            runCatching { attachmentFiles.clearTask(taskId) }.onFailure {
+                Log.w("StudySync", "Local attachment files will be cleared during cleanup", it)
+            }
         }
     }
 
@@ -135,14 +139,14 @@ class OfflineStudyRepository(
     suspend fun retrySync() {
         write(manual = true) {
             store.retryRejected()
-            store.setSyncMessage("Sync requested. Waiting for a connection if needed.")
+            store.setSyncMessage(AppMessage.SYNC_REQUESTED.name)
         }
     }
 
     suspend fun discardRejected() {
         write(manual = true) {
             store.discardRejected()
-            store.setSyncMessage("Rejected edits discarded. Cloud data will load when connected.")
+            store.setSyncMessage(AppMessage.SYNC_DISCARDED.name)
         }
     }
 
@@ -178,7 +182,7 @@ class OfflineStudyRepository(
         )
 
         require(error == null) {
-            error ?: "Invalid subject."
+            error ?: AppMessage.INVALID_SUBJECT.name
         }
     }
 
@@ -193,7 +197,7 @@ class OfflineStudyRepository(
         val error = TaskValidator.validate(task)
 
         require(error == null) {
-            error ?: "Invalid task."
+            error ?: AppMessage.INVALID_TASK.name
         }
 
         require(
@@ -201,14 +205,14 @@ class OfflineStudyRepository(
                 it.subjectId == task.subjectId
             }
         ) {
-            "Choose one of your existing subjects."
+            AppMessage.EXISTING_SUBJECT_REQUIRED.name
         }
     }
 
     private fun requireAccount() {
         if (currentUserId() != userId) {
             throw ApiException(
-                "Your account changed. Please sign in again.", statusCode = 401
+                AppMessage.ACCOUNT_CHANGED.name, statusCode = 401
             )
         }
     }

@@ -1,5 +1,6 @@
 package com.studysync.app
 
+import kotlinx.coroutines.runBlocking
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
@@ -27,8 +28,22 @@ class PushTest {
     @Before
     fun setup() {
         preferences.edit().clear().putBoolean("enabled_user-a", true).commit()
+        context.getSharedPreferences("studysync_settings", 0).edit().clear().commit()
         manager.cancelAll()
         PushNotifications.createChannel(context)
+    }
+
+    @Test
+    fun backgroundNotificationUsesTheSavedIsiZuluLanguage() = runBlocking {
+        SettingsStorage(context).save(AppSettings(language = "zu"))
+        assertTrue(PushNotifications.show(context, data) { "user-a" })
+        val notification = manager.activeNotifications.single().notification
+        assertEquals(
+            "Izaziso zixhunyiwe.",
+            notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+        )
+        assertEquals("Izaziso zokufunda", manager.getNotificationChannel("study_updates").name)
+        assertEquals(Notification.VISIBILITY_PRIVATE, notification.visibility)
     }
 
     @Test

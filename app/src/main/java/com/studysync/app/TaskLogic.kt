@@ -1,21 +1,22 @@
 package com.studysync.app
 
+import androidx.annotation.StringRes
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import java.util.Locale
 import kotlin.math.roundToInt
 
-enum class TaskFilter(val label: String) {
-    ALL("All tasks"),
-    PENDING("Pending"),
-    COMPLETED("Completed"),
-    OVERDUE("Overdue")
+enum class TaskFilter(@StringRes val label: Int) {
+    ALL(R.string.all_tasks),
+    PENDING(R.string.pending),
+    COMPLETED(R.string.completed),
+    OVERDUE(R.string.overdue)
 }
 
-enum class TaskSort(val label: String) {
-    DUE_DATE("Deadline: earliest first"),
-    PRIORITY("Priority: high to low"),
-    TITLE("Title: A–Z")
+enum class TaskSort(@StringRes val label: Int) {
+    DUE_DATE(R.string.sort_due_date),
+    PRIORITY(R.string.sort_priority),
+    TITLE(R.string.sort_title)
 }
 
 data class TaskProgress(

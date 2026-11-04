@@ -225,4 +225,37 @@
     <string name="server_description_too_long">Description must be 2000 characters or fewer.</string>
     <string name="server_subject_name_too_long">Subject name must be 80 characters or fewer.</string>
     <string name="server_lecturer_name_too_long">Lecturer name must be 80 characters or fewer.</string>
+
+    <!-- Focus sessions and history -->
+    <string name="focus_tab">Focus</string>
+    <string name="focus_sessions">Focus sessions</string>
+    <string name="focus_description">Choose a subject if you wish, then focus on your studies.</string>
+    <string name="focus_duration">Session duration</string>
+    <string name="focus_subject">Subject (optional)</string>
+    <string name="focus_no_subject">No subject selected</string>
+    <string name="focus_no_subjects_hint">You can focus without a subject, or add subjects in the Subjects tab.</string>
+    <string name="focus_subject_error">Could not load subjects. You can still start without a subject.</string>
+    <string name="focus_time_remaining">Time remaining: %1$s</string>
+    <string name="focus_start">Start session</string>
+    <string name="focus_pause">Pause</string>
+    <string name="focus_resume">Resume</string>
+    <string name="focus_cancel">Cancel session</string>
+    <string name="focus_reset">Reset timer</string>
+    <string name="focus_ready">Ready to focus</string>
+    <string name="focus_running">Session in progress</string>
+    <string name="focus_paused">Session paused</string>
+    <string name="focus_completed">Session completed</string>
+    <string name="focus_cancelled">Session cancelled. It was not added to history.</string>
+    <string name="focus_saving">Saving completed session…</string>
+    <string name="focus_saved">Completed session saved to history.</string>
+    <string name="focus_save_error">Could not save this completed session. Retry before resetting the timer.</string>
+    <string name="focus_history_error">Could not load focus history. Please try again.</string>
+    <string name="focus_history_hint">Only completed sessions are saved. Resetting or cancelling an unfinished session discards its progress.</string>
+    <string name="focus_history">Completed sessions</string>
+    <string name="focus_empty_history">No completed sessions yet.</string>
+    <string name="focus_completed_date">Completed: %1$s</string>
+    <plurals name="focus_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
 </resources>

@@ -3,6 +3,7 @@ package com.studysync.app
 import android.os.Bundle
 import android.os.Build
 import android.util.Log
+import androidx.lifecycle.ViewModelProvider
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -39,7 +40,9 @@ class MainActivity : AppCompatActivity() {
                     primary = Color(0xFF2855B8)
                 )
             ) {
-                AuthScreen()
+                AuthScreen(
+                    focusSessions = ViewModelProvider(this@MainActivity)[FocusSessionsViewModel::class.java]
+                )
             }
         }
     }
@@ -51,6 +54,7 @@ fun StudySyncScreen(
     userId: String,
     userEmail: String,
     biometricLock: BiometricLock,
+    focusSessions: FocusSessionsViewModel,
     onSignOut: () -> Unit
 ) {
     val context = LocalContext.current
@@ -152,11 +156,12 @@ fun StudySyncScreen(
                         userId = userId,
                         dataVersion = dataVersion
                     )
-                    TabRow(selectedTabIndex = selectedTab) {
+                    ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 0.dp) {
                         listOf(
                             context.getString(R.string.tasks),
                             context.getString(R.string.subjects),
-                            context.getString(R.string.settings)
+                            context.getString(R.string.settings),
+                            context.getString(R.string.focus_tab)
                         )
                             .forEachIndexed { index, title ->
                                 Tab(
@@ -169,6 +174,12 @@ fun StudySyncScreen(
                     }
 
                     when (selectedTab) {
+                        3 -> FocusSessionsScreen(
+                            repository = repository,
+                            sessions = focusSessions,
+                            dataVersion = dataVersion
+                        )
+
                         0 -> TasksScreen(
                             repository = repository,
                             settings = currentSettings,

@@ -60,6 +60,25 @@ For the demonstration:
 4. Change task priority or sorting, then restore defaults. Confirm that isiZulu remains selected.
 5. Switch back to English. Check offline edits and sync, and send a test notification if notifications are enabled.
 
+## Part 3: Commit 9 focus sessions and history
+
+Open the **Focus** tab. Sessions default to 25 minutes, with 1, 5, 25 and 50 minute options. Choose an optional subject, then start, pause, resume, reset or cancel the timer. Remaining time uses `SystemClock.elapsedRealtime()` rather than counting timer ticks, so time spent in the background is included and paused time is excluded.
+
+Completed sessions are saved automatically in the private local `studysync_focus.db` SQLite database. History shows the completion date, study duration and selected subject. Records are linked to the signed-in user and use a unique session ID to prevent duplicate saves. Subject names are saved with the session, so later subject changes do not rewrite history. Focus history is local only and does not enter the REST API or offline sync outbox.
+
+The timer survives tab changes, rotation, language switching and the biometric lock screen. Signing out discards an unfinished timer. Completed history survives closing and reopening the app. Active timers are held in memory: force-stopping the app, process termination or restarting the phone discards unfinished sessions. No foreground service or completion notification is added. After background sleep, completion is recorded when the app next runs, using the calculated finish time. If saving fails, retry before resetting the timer.
+
+With JDK 17, Android SDK 35 and your real `app/google-services.json`, run:
+
+```sh
+sh ./gradlew :app:testDebugUnitTest --tests 'com.studysync.app.Focus*'
+sh ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+```
+
+Tests cover elapsed-time calculations, pausing, resuming, resetting, cancelling, delayed completion, database reopening, user separation, duplicate/concurrent saves, save retries, activity recreation and English/isiZulu resources. The existing translation coverage test also checks every new resource and plural argument.
+
+For a short demonstration, select 1 minute and a subject, start and pause the session, then resume it. Leave the app in the background until it finishes and return through biometric verification if enabled. Show the completed history entry, reopen the app to show it remains, then cancel a new session and confirm history has not grown. Switch between English and isiZulu in Settings and return to Focus to show the translated screen. A second account should have its own history.
+
 ## Architecture and design
 
 ```mermaid

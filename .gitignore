@@ -13,3 +13,4 @@ server/.env
 *.download
 *.log
 .DS_Store
+/google-services.json

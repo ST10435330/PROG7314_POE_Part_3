@@ -222,4 +222,37 @@
     <string name="server_description_too_long">Incazelo kufanele ibe nezinhlamvu eziyizi-2000 noma ngaphansi.</string>
     <string name="server_subject_name_too_long">Igama lesifundo kufanele libe nezinhlamvu ezingama-80 noma ngaphansi.</string>
     <string name="server_lecturer_name_too_long">Igama lomfundisi kufanele libe nezinhlamvu ezingama-80 noma ngaphansi.</string>
+
+    <!-- Focus sessions and history -->
+    <string name="focus_tab">Ukugxila</string>
+    <string name="focus_sessions">Izikhathi zokugxila</string>
+    <string name="focus_description">Khetha isifundo uma uthanda, bese ugxila ekufundeni kwakho.</string>
+    <string name="focus_duration">Ubude besikhathi sokugxila</string>
+    <string name="focus_subject">Isifundo (akuphoqelekile)</string>
+    <string name="focus_no_subject">Asikho isifundo esikhethiwe</string>
+    <string name="focus_no_subjects_hint">Ungagxila ngaphandle kwesifundo, noma wengeze izifundo kuthebhu ethi Izifundo.</string>
+    <string name="focus_subject_error">Izifundo azilayishekanga. Usengaqala ngaphandle kwesifundo.</string>
+    <string name="focus_time_remaining">Isikhathi esisele: %1$s</string>
+    <string name="focus_start">Qala isikhathi sokugxila</string>
+    <string name="focus_pause">Misa okwesikhashana</string>
+    <string name="focus_resume">Qhubeka</string>
+    <string name="focus_cancel">Khansela isikhathi sokugxila</string>
+    <string name="focus_reset">Setha isibali sikhathi kabusha</string>
+    <string name="focus_ready">Usukulungele ukugxila</string>
+    <string name="focus_running">Ukugxila kuyaqhubeka</string>
+    <string name="focus_paused">Ukugxila kumisiwe okwesikhashana</string>
+    <string name="focus_completed">Isikhathi sokugxila siqediwe</string>
+    <string name="focus_cancelled">Isikhathi sokugxila sikhanseliwe. Asifakwanga emlandweni.</string>
+    <string name="focus_saving">Kulondolozwa isikhathi sokugxila esiqediwe…</string>
+    <string name="focus_saved">Isikhathi sokugxila esiqediwe silondolozwe emlandweni.</string>
+    <string name="focus_save_error">Lesi sikhathi esiqediwe asilondolozekanga. Zama futhi ngaphambi kokusetha isibali sikhathi kabusha.</string>
+    <string name="focus_history_error">Umlando wokugxila awulayishekanga. Sicela uzame futhi.</string>
+    <string name="focus_history_hint">Kulondolozwa izikhathi eziqediwe kuphela. Ukusetha kabusha noma ukukhansela isikhathi esingakaqedwa kulahla inqubekela phambili yaso.</string>
+    <string name="focus_history">Izikhathi zokugxila eziqediwe</string>
+    <string name="focus_empty_history">Azikho izikhathi zokugxila eziqediwe okwamanje.</string>
+    <string name="focus_completed_date">Kuqedwe: %1$s</string>
+    <plurals name="focus_minutes">
+        <item quantity="one">Umzuzu oyi-%1$d</item>
+        <item quantity="other">Imizuzu eyi-%1$d</item>
+    </plurals>
 </resources>

@@ -29,7 +29,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
-fun AuthScreen() {
+fun AuthScreen(focusSessions: FocusSessionsViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -68,13 +68,14 @@ fun AuthScreen() {
         }
     }
 
-    DisposableEffect(auth, biometricLock) {
+    DisposableEffect(auth, biometricLock, focusSessions) {
         val listener = FirebaseAuth.AuthStateListener {
             if (user?.uid != it.currentUser?.uid) {
                 biometricLock.lock()
                 PushNotifications.clear(context)
             }
 
+            focusSessions.setUser(it.currentUser?.uid)
             user = it.currentUser
         }
 
@@ -92,6 +93,7 @@ fun AuthScreen() {
             error = null
 
             biometricLock.lock()
+            focusSessions.setUser(null)
             auth.signOut()
             PushNotifications.clear(context)
             user = null
@@ -235,6 +237,7 @@ fun AuthScreen() {
                 userId = signedInUser.uid,
                 userEmail = signedInUser.email.orEmpty(),
                 biometricLock = biometricLock,
+                focusSessions = focusSessions,
                 onSignOut = signOut
             )
         }

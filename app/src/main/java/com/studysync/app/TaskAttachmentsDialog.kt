@@ -1,5 +1,6 @@
 package com.studysync.app
 
+import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -11,16 +12,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
-// Picker results wait here until the biometric screen has been unlocked again.
+// Only a result from a picker launched by this unlocked session can resume it.
+// Reference: https://developer.android.com/training/basics/intents/result
 @Composable
-fun AttachmentLaunchers(model: AttachmentsViewModel, unlocked: Boolean, canAccess: () -> Boolean) {
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument(), model::receiveSelection)
-    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream"), model::receiveDestination)
+fun AttachmentLaunchers(model: AttachmentsViewModel, biometricLock: BiometricLock,
+    unlocked: Boolean, canAccess: () -> Boolean) {
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        biometricLock.completeDocumentPicker()
+        model.receiveSelection(uri)
+    }
+    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        biometricLock.completeDocumentPicker()
+        model.receiveDestination(uri)
+    }
 
     LaunchedEffect(unlocked, model.pickerRequested, model.busy) {
-        if (unlocked && canAccess() && model.pickerRequested && !model.busy) {
+        if (unlocked && canAccess() && model.pickerRequested && !model.busy && biometricLock.beginDocumentPicker()) {
             model.pickerLaunched()
-            picker.launch(AttachmentValidator.types)
+            try { picker.launch(AttachmentValidator.types) }
+            catch (_: ActivityNotFoundException) { biometricLock.cancelDocumentPicker(); model.receiveSelection(null) }
+            catch (_: SecurityException) { biometricLock.cancelDocumentPicker(); model.receiveSelection(null) }
         }
     }
     LaunchedEffect(unlocked, model.selectedUri, model.busy) {
@@ -30,7 +41,13 @@ fun AttachmentLaunchers(model: AttachmentsViewModel, unlocked: Boolean, canAcces
         if (unlocked && canAccess() && !model.busy) {
             when (model.readyFile?.action) {
                 AttachmentAction.OPEN -> model.openReadyFile()
-                AttachmentAction.SAVE_COPY -> model.beginExport()?.let { save.launch(it) }
+                AttachmentAction.SAVE_COPY -> if (biometricLock.beginDocumentPicker()) {
+                    val name = model.beginExport()
+                    if (name == null) biometricLock.cancelDocumentPicker()
+                    else try { save.launch(name) }
+                    catch (_: ActivityNotFoundException) { biometricLock.cancelDocumentPicker(); model.receiveDestination(null) }
+                    catch (_: SecurityException) { biometricLock.cancelDocumentPicker(); model.receiveDestination(null) }
+                }
                 null -> Unit
             }
         }

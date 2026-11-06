@@ -1,6 +1,11 @@
 package com.studysync.app
 
 import android.content.MutableContextWrapper
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -51,18 +56,29 @@ fun AuthScreen(focusSessions: FocusSessionsViewModel, attachments: AttachmentsVi
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // Clear in-memory unlock permission whenever the activity stops.
+    // Lock on stop; only a short-lived document result may restore this session.
     // Reference: https://developer.android.com/guide/components/activities/activity-lifecycle
     DisposableEffect(activity, biometricLock) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
-                biometricLock.lock()
+                biometricLock.lock(preserveDocumentResult = true)
             }
         }
 
         activity?.lifecycle?.addObserver(observer)
 
+        // Screen-off cancels the return permission even while the picker is open.
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == Intent.ACTION_SCREEN_OFF) biometricLock.lock()
+            }
+        }
+        val appContext = context.applicationContext
+        ContextCompat.registerReceiver(appContext, receiver, IntentFilter(Intent.ACTION_SCREEN_OFF),
+            ContextCompat.RECEIVER_NOT_EXPORTED)
+
         onDispose {
+            appContext.unregisterReceiver(receiver)
             activity?.lifecycle?.removeObserver(observer)
             biometricLock.lock()
         }
@@ -127,6 +143,7 @@ fun AuthScreen(focusSessions: FocusSessionsViewModel, attachments: AttachmentsVi
 
     AttachmentLaunchers(
         model = attachments,
+        biometricLock = biometricLock,
         unlocked = signedInUser != null && (
             !biometricLock.isEnabled(signedInUser.uid) || biometricLock.unlockedUserId == signedInUser.uid
         ),

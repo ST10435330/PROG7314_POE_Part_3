@@ -1,6 +1,8 @@
 package com.studysync.app
 
+import android.app.KeyguardManager
 import android.content.Context
+import android.os.SystemClock
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -34,6 +36,7 @@ class BiometricLock(context: Context) {
     private var enabledAccounts by mutableStateOf(preferences.all.keys.toSet())
     private var prompt: BiometricPrompt? = null
     private var generation = 0
+    private val documentPicker = DocumentPickerSession(SystemClock::elapsedRealtime)
 
     var unlockedUserId by mutableStateOf<String?>(null)
         private set
@@ -41,12 +44,29 @@ class BiometricLock(context: Context) {
     fun isEnabled(userId: String): Boolean = alias(userId) in enabledAccounts
 
     // The UI must call this when the application leaves the foreground.
-    fun lock() {
+    fun lock(preserveDocumentResult: Boolean = false) {
+        if (!preserveDocumentResult) documentPicker.clear()
         unlockedUserId = null
         generation++
         prompt?.cancelAuthentication()
         prompt = null
         Log.d("StudySync", "Biometric session locked")
+    }
+
+    fun beginDocumentPicker(): Boolean {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false
+        return documentPicker.begin(uid, !isEnabled(uid) || unlockedUserId == uid)
+    }
+
+    fun cancelDocumentPicker() = documentPicker.clear()
+
+    fun completeDocumentPicker() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        val deviceLocked = appContext.getSystemService(KeyguardManager::class.java)?.isDeviceLocked != false
+        documentPicker.finish(uid, deviceLocked)?.let {
+            unlockedUserId = it
+            Log.d("StudySync", "Resumed session after document picker")
+        }
     }
 
     fun authenticate(

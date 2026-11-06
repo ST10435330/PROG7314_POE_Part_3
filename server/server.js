@@ -18,14 +18,14 @@ const db = getFirestore();
 // Reading a missing document is valid and does not create it.
 await db.doc("_health/startup").get();
 
-// Migration stage 1: verify private storage without changing the Android provider.
 // A storage configuration issue must not take task sync or notifications offline.
-await connectAttachmentStorage();
+const attachmentStorage = await connectAttachmentStorage();
 
 const app = createApp({
   auth: getAuth(),
   db,
-  messaging: getMessaging()
+  messaging: getMessaging(),
+  attachmentStorage
 });
 
 const port = Number(process.env.PORT || 3000);

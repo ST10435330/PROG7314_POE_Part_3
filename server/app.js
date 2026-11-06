@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { installSyncRoutes } from "./sync.js";
 import { installNotificationRoutes } from "./notifications.js";
 import { notifyTaskChange } from "./taskNotifications.js";
+import { installAttachmentRoutes } from "./attachments.js";
 import {
   ApiError,
   subjectInput,
@@ -19,7 +20,7 @@ function record(kind, id, data) {
   };
 }
 
-export function createApp({ auth, db, messaging }) {
+export function createApp({ auth, db, messaging, attachmentStorage }) {
   const app = express();
   const notifyTask = (uid, operationId) => {
     // The sender handles failures independently of the successful task response.
@@ -183,6 +184,7 @@ export function createApp({ auth, db, messaging }) {
 
   installSyncRoutes(app, db, notifyTask);
   installNotificationRoutes(app, db, messaging);
+  installAttachmentRoutes(app, db, attachmentStorage);
 
   for (const kind of ["subjects", "tasks"]) {
     app.get(`/api/${kind}`, async (req, res) => {
@@ -230,6 +232,8 @@ export function createApp({ auth, db, messaging }) {
         "INVALID_JSON",
         "Send valid JSON."
       );
+    } else if (error.type === "encoding.unsupported") {
+      error = new ApiError(415, "UNSUPPORTED_ENCODING", "Send an uncompressed file.");
     } else if (error.type === "entity.too.large") {
       error = new ApiError(
         413,

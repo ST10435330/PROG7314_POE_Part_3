@@ -4,7 +4,7 @@ Native Android study planner for **PROG7314 Part 3**, version **2.0.0** (version
 
 [Repository](https://github.com/ST10435330/PROG7314_POE_Part_3) | [Build and test results](https://github.com/ST10435330/PROG7314_POE_Part_3/actions) | [API health](https://prog7314-poe-part-2.onrender.com/api/health) | [Releases](https://github.com/ST10435330/PROG7314_POE_Part_3/releases)
 
-**Final demonstration video:** Pending recording and upload. Replace this notice with the final narrated physical-phone video URL before submission.
+**Final demonstration video:** https://youtu.be/2jKkpYxGkFw
 
 **Signed APK:** Built, signature verified and installed on a physical Huawei phone. Upload `app-release.apk` to the final GitHub Release and link that release here before submission. Google Play publication has not been claimed.
 

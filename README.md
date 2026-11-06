@@ -1,10 +1,15 @@
 # StudySync - Final POE
 
+**Project by:**
+
+- **Antonio Bechev - ST10435330**
+- **Sive Sikutshwa - ST10061605**
+
 Native Android study planner for **PROG7314 Part 3**, version **2.0.0** (version code 2). StudySync helps students organise subjects, prioritise tasks, track progress and practise effective study habits.
 
 [Repository](https://github.com/ST10435330/PROG7314_POE_Part_3) | [Build and test results](https://github.com/ST10435330/PROG7314_POE_Part_3/actions) | [API health](https://prog7314-poe-part-2.onrender.com/api/health) | [Releases](https://github.com/ST10435330/PROG7314_POE_Part_3/releases)
 
-**Final demonstration video:** https://youtu.be/2jKkpYxGkFw
+**Final demonstration video:** [Watch the StudySync application and backend demonstration](https://youtu.be/2jKkpYxGkFw)
 
 **Signed APK:** Built, signature verified and installed on a physical Huawei phone. Upload `app-release.apk` to the final GitHub Release and link that release here before submission. Google Play publication has not been claimed.
 
@@ -43,6 +48,22 @@ Native Android study planner for **PROG7314 Part 3**, version **2.0.0** (version
 | Production assets | Custom application icon, consistent blue/mint theme, bottom navigation and physical-device screenshots. |
 | DevOps | Preserved repository history; GitHub Actions builds, tests and lint checks. Final submission will use an annotated Final-POE tag. |
 
+## Three custom features
+
+These features extend the core subject and task planner in the final application:
+
+### 1. Task attachments
+
+Students can attach PDF documents and supported images to individual tasks, keeping assignment instructions, notes and reference material with the relevant work. Files can be uploaded, opened, exported and deleted. Attachment bytes are stored in private Supabase Storage and accessed through the Firebase-authenticated REST API; metadata is stored in Firestore.
+
+### 2. Focus timer and session history
+
+Students can run timed study sessions, optionally associate them with a subject, and pause, resume, reset or cancel the timer. Completed sessions appear in account-separated local SQLite history, helping students review their completed study time. Focus history is stored on the device and is not cloud-synchronised.
+
+### 3. Study Resources
+
+The Study Resources tab provides English and isiZulu guides on retrieval practice, spaced practice, interleaving and self-explanation. Offline guide text includes practical suggestions, research citations and reference links. A credited educational YouTube video opens externally, and an Open Focus shortcut connects the advice to a study session. External references and the video require internet access.
+
 ## Architecture and design considerations
 
 ```mermaid
@@ -74,7 +95,13 @@ Uploads preserve their UUID on retry. Downloads use private cache; opening a fil
 
 A newly created offline task must sync before accepting uploads. Cached attachments can open offline; new uploads and uncached downloads need connectivity. There is no persistent background upload queue. See [storage setup and endpoint details](server/SUPABASE_STORAGE.md).
 
-Firebase Storage was replaced after billing activation prevented its use. Supabase attachments now work; this is not an outstanding Firebase billing dependency. Historical `storage.rules`, `tests/storage` and their workflow cover the retired provider, not the current Supabase access path.
+### Storage provider decision
+
+Firebase Storage was originally planned for attachments, but activating the Blaze billing plan required a payment that could not be funded within the student project budget. We therefore migrated attachment file storage to Supabase so the feature could be completed and demonstrated.
+
+Only attachment file bytes moved to Supabase. Firebase Authentication, Cloud Firestore and Firebase Cloud Messaging remain in use. Attachments still pass through the authenticated REST API, with ownership checks and a private storage bucket. The attachment feature is functional and does not depend on activating Firebase Blaze.
+
+Historical `storage.rules`, `tests/storage` and their workflow cover the retired Firebase Storage provider, not the current Supabase access path.
 
 ## Setup and verification
 
@@ -126,7 +153,7 @@ On 6 November 2026, the developer reported successful signed-release installatio
 
 APK signature verification reported one signer and a valid V2 signature. Certificate SHA-1: `AF:96:8A:C8:C5:FF:A2:74:03:8A:0D:9A:7F:33:AD:2D:B2:68:A1:04`. This is a certificate fingerprint, not an APK file checksum. Keep the keystore and passwords outside Git.
 
-The final submission must include the narrated demonstration URL and downloadable signed APK. Screenshots are in this repository. Tag the completed submission commit `Final-POE` only after its code, documentation and evidence are final.
+The final demonstration video is linked at the top of this README, and promotional screenshots are included in this repository. Upload the signed APK to the final GitHub Release and add its direct release link before submission. Tag the completed submission commit `Final-POE` only after its code, documentation and evidence are final.
 
 Completed focus history is local and account-separated; it is not cloud-synchronised. Unfinished timers are lost if the process is terminated. The educational video opens externally and needs internet. Cloud availability and notification delivery depend on connectivity and provider availability. File bytes and Firestore manifests are not a distributed transaction; combined failures can require retry or owner intervention. Exported files are outside the app's control. Uninstalling deletes local settings, focus history and unsynchronised data.
 

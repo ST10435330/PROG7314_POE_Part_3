@@ -75,7 +75,7 @@ fun TaskAttachmentsDialog(task: StudyTask, model: AttachmentsViewModel) {
                 if (model.canRetryUpload && !model.busy) {
                     TextButton(onClick = model::retryUpload) { Text(context.getString(R.string.attachment_retry_upload)) }
                 }
-                if (!model.busy && !model.cached && model.attachments.isEmpty()) {
+                if (!model.busy && model.error == null && !model.cached && model.attachments.isEmpty()) {
                     Text(context.getString(R.string.attachment_empty_list))
                 }
                 model.attachments.forEach { attachment ->

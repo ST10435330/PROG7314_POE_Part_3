@@ -23,9 +23,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Check preinstalled Android SDK
+      - name: Install required Android SDK
         run: |
-          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"
+          test -f "$ANDROID_HOME/platforms/android-36/android.jar"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
 
       - name: Set up Gradle
@@ -49,12 +50,16 @@ jobs:
       - name: Run unit tests
         run: gradle --no-daemon :app:testDebugUnitTest
 
+      - name: Check Android lint
+        run: gradle --no-daemon :app:lintDebug
+
       - name: Save test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-reports
+          name: android-verification-reports
           path: |
             app/build/reports/tests/testDebugUnitTest/
             app/build/test-results/testDebugUnitTest/
+            app/build/reports/lint-results-debug.*
           retention-days: 7

@@ -15,6 +15,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.util.UUID
 
+// Short method names keep Robolectric SQLite paths within common Windows limits.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], manifest = Config.NONE)
 class AttachmentsViewModelTest {
@@ -63,7 +64,7 @@ class AttachmentsViewModelTest {
     }
 
     @Test
-    fun pickerResultWaitsForTheUnlockedUiToConsumeIt() {
+    fun pickerWaitsForUnlock() {
         model.requestPicker()
         model.pickerLaunched()
         model.receiveSelection(Uri.fromFile(source))
@@ -77,7 +78,7 @@ class AttachmentsViewModelTest {
     }
 
     @Test
-    fun signingOutDiscardsPendingPickerResultsAndAttachmentState() {
+    fun signOutClearsPicker() {
         model.requestPicker()
         model.pickerLaunched()
         current = null
@@ -90,7 +91,7 @@ class AttachmentsViewModelTest {
     }
 
     @Test
-    fun uploadFailureCanRetryTheSameObjectWithoutDuplicateFiles() {
+    fun retryUsesSameObject() {
         cloud.fail = true
         model.requestPicker()
         model.pickerLaunched()
@@ -110,7 +111,7 @@ class AttachmentsViewModelTest {
     }
 
     @Test
-    fun cancellationInvalidatesDelayedPickerCallbacks() {
+    fun cancelIgnoresLatePicker() {
         model.requestPicker()
         model.pickerLaunched()
         model.cancelOperation()

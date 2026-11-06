@@ -32,6 +32,8 @@ class AttachmentFilesTest {
 
     @Test
     fun externalOpeningUsesAnUnexportedProviderAndReadOnlyTemporaryGrant() {
+        // AndroidX FileProvider requires POSIX paths. Run this integration check on Linux CI.
+        org.junit.Assume.assumeTrue("FileProvider path test requires POSIX paths", File.separatorChar == '/')
         registerProvider()
         val record = TaskAttachment(AttachmentValidator.newId(), "task-1", "Notes.pdf", "application/pdf", 8)
         val files = AttachmentFiles(context, "alice")

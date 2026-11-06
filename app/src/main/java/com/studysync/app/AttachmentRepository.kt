@@ -248,7 +248,10 @@ class AttachmentRepository(
 
 fun attachmentError(exception: Exception, fallback: Int): Int = when (exception) {
     is AttachmentFailure -> exception.messageId
-    is StorageException -> when (exception.errorCode) {
+    // The SDK reports HTTP 402 as ERROR_UNKNOWN; keep billing/quota feedback actionable.
+    // A 403 remains access denied because it can also indicate authentication or rules.
+    is StorageException -> if (exception.httpResultCode == 402) R.string.attachment_quota_error
+    else when (exception.errorCode) {
         StorageException.ERROR_NOT_AUTHENTICATED -> R.string.attachment_sign_in
         StorageException.ERROR_NOT_AUTHORIZED -> R.string.attachment_denied
         StorageException.ERROR_OBJECT_NOT_FOUND -> R.string.attachment_missing

@@ -13,6 +13,7 @@ import java.io.File
 import java.io.IOException
 import java.util.UUID
 
+// Short method names keep Robolectric SQLite paths within common Windows limits.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], manifest = Config.NONE)
 class AttachmentRepositoryTest {
@@ -47,7 +48,7 @@ class AttachmentRepositoryTest {
     }
 
     @Test
-    fun unsyncedTasksCannotUploadAndRetriesKeepTheSameObject() = runBlocking {
+    fun uploadNeedsSyncedTask() = runBlocking {
         remote.records = emptyList()
         try {
             repository.upload(PreparedAttachment(attachment, source)) { }
@@ -64,7 +65,7 @@ class AttachmentRepositoryTest {
     }
 
     @Test
-    fun cloudListsAreCachedForOfflineUseAndSeparatedByAccount() = runBlocking {
+    fun listsUsePrivateCache() = runBlocking {
         cloud.records[attachment.id] = attachment
         assertEquals(listOf(attachment), repository.list(task.taskId))
         cloud.fail = true
@@ -75,7 +76,7 @@ class AttachmentRepositoryTest {
     }
 
     @Test
-    fun authenticatedDownloadCanBeOpenedFromItsPrivateCacheWhileOffline() = runBlocking {
+    fun cachedFileOpensOffline() = runBlocking {
         cloud.content[attachment.id] = bytes
         val file = repository.download(attachment) { }
         assertArrayEquals(bytes, file.readBytes())
@@ -89,7 +90,7 @@ class AttachmentRepositoryTest {
     }
 
     @Test
-    fun failedDownloadsRemovePartialFiles() = runBlocking {
+    fun failedDownloadDeletesPartial() = runBlocking {
         cloud.fail = true
         try { repository.download(attachment) { }; fail("Expected failure") } catch (_: IOException) { }
         val target = repository.files.file(attachment)
@@ -98,7 +99,7 @@ class AttachmentRepositoryTest {
     }
 
     @Test
-    fun accountChangesDuringUploadCannotPublishResultsToTheNextAccount() = runBlocking {
+    fun uploadChecksAccount() = runBlocking {
         cloud.afterUpload = { currentUser = "other-user" }
         try {
             repository.upload(PreparedAttachment(attachment, source)) { }
@@ -109,7 +110,7 @@ class AttachmentRepositoryTest {
     }
 
     @Test
-    fun deletionIsIdempotentAndRemovesOnlyTheSelectedCachedAttachment() = runBlocking {
+    fun deleteRemovesSelectedFile() = runBlocking {
         cloud.records[attachment.id] = attachment
         cloud.content[attachment.id] = bytes
         repository.list(task.taskId)
@@ -120,7 +121,7 @@ class AttachmentRepositoryTest {
     }
 
     @Test
-    fun locallyDeletedTasksCannotStartAnotherStorageOperation() = runBlocking {
+    fun deletedTaskBlocksStorage() = runBlocking {
         store.deleteTask(task.taskId)
         try { repository.upload(PreparedAttachment(attachment, source)) { }; fail("Expected missing task") }
         catch (error: AttachmentFailure) { assertEquals(R.string.attachment_task_missing, error.messageId) }

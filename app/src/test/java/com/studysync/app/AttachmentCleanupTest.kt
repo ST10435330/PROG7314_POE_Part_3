@@ -13,6 +13,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.util.UUID
 
+// Short method names keep Robolectric SQLite paths within common Windows limits.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], manifest = Config.NONE)
 class AttachmentCleanupTest {
@@ -33,7 +34,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun cleanupWaitsForCloudAcknowledgementAndSurvivesDatabaseReopening() {
+    fun cleanupWaitsForCloudAck() {
         queueDeletion()
         assertEquals(1, store.attachmentCleanupCount())
         assertTrue(store.attachmentCleanupTasks().isEmpty())
@@ -46,7 +47,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun failedTaskWritesRollbackTheCleanupIntentAndCachedAttachmentDeletion() {
+    fun failedWriteRollsBackCleanup() {
         store.saveTask(task)
         val attachment = TaskAttachment(AttachmentValidator.newId(), task.taskId, "Notes.pdf", "application/pdf", 10)
         store.cacheAttachments(task.taskId, listOf(attachment))
@@ -60,7 +61,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun rejectedTaskDeletionDoesNotBecomeEligibleForCloudCleanup() {
+    fun rejectionBlocksCleanup() {
         queueDeletion()
         store.reject(store.pendingChanges().single().operationId, "Rejected")
         assertTrue(store.attachmentCleanupTasks().isEmpty())
@@ -69,7 +70,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun storageFailureKeepsItsQueueWithoutChangingTheTaskOutbox() = runBlocking {
+    fun failureKeepsCleanupQueued() = runBlocking {
         queueDeletion()
         store.acknowledge(store.pendingChanges().single().operationId)
         store.saveTask(task.copy(taskId = "other-task"))
@@ -86,7 +87,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun cleanupDeletesFilesButStopsWhenTheAccountChanges() = runBlocking {
+    fun cleanupChecksAccount() = runBlocking {
         queueDeletion()
         store.acknowledge(store.pendingChanges().single().operationId)
         val cloud = AttachmentTestCloud()
@@ -105,7 +106,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun aRestoredTaskKeepsItsCloudAttachments() = runBlocking {
+    fun restoredTaskKeepsFiles() = runBlocking {
         queueDeletion()
         store.acknowledge(store.pendingChanges().single().operationId)
         val cloud = AttachmentTestCloud()
@@ -115,7 +116,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun cleanupStopsWhenANewerLocalDeletionReplacesItsIntent() = runBlocking {
+    fun newIntentStopsOldCleanup() = runBlocking {
         queueDeletion()
         store.acknowledge(store.pendingChanges().single().operationId)
         val cloud = AttachmentTestCloud()
@@ -132,7 +133,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun staleCleanupCannotConsumeANewerDeletionOfARestoredTask() {
+    fun oldAckPreservesNewIntent() {
         queueDeletion()
         store.acknowledge(store.pendingChanges().single().operationId)
         val oldToken = store.attachmentCleanupToken(task.taskId)
@@ -147,7 +148,7 @@ class AttachmentCleanupTest {
     }
 
     @Test
-    fun versionTwoMigrationPreservesCacheOutboxIdsRejectionsAndSyncState() {
+    fun migrationPreservesSyncState() {
         val file = context.getDatabasePath(checkNotNull(store.databaseName))
         file.parentFile?.mkdirs()
         val payload = Gson().toJson(task)

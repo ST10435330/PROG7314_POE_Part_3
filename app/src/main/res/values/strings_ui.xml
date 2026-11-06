@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_nav_resources">Resources</string>
+    <string name="ui_sync_title">Cloud sync</string>
+    <string name="ui_show_details">Details</string>
+    <string name="ui_hide_details">Hide details</string>
+    <string name="ui_by_subject">By subject</string>
+    <string name="ui_task_actions">Actions for %1$s</string>
+    <string name="ui_no_due_date">No due date</string>
+</resources>

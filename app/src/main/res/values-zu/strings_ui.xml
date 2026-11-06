@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_nav_resources">Izinsiza</string>
+    <string name="ui_sync_title">Ukuvumelanisa nefu</string>
+    <string name="ui_show_details">Imininingwane</string>
+    <string name="ui_hide_details">Fihla imininingwane</string>
+    <string name="ui_by_subject">Ngesifundo</string>
+    <string name="ui_task_actions">Izenzo ze-%1$s</string>
+    <string name="ui_no_due_date">Alukho usuku lokugcina</string>
+</resources>

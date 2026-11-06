@@ -126,6 +126,12 @@ fun StudySyncScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (settings != null && loadError == null) {
+                StudyBottomNavigation(selected = selectedTab, enabled = !savingSettings,
+                    onSelected = { selectedTab = it })
+            }
         }
     ) { padding ->
         val currentSettings = settings
@@ -167,23 +173,6 @@ fun StudySyncScreen(
                         userId = userId,
                         dataVersion = dataVersion
                     )
-                    ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 0.dp) {
-                        listOf(
-                            context.getString(R.string.tasks),
-                            context.getString(R.string.subjects),
-                            context.getString(R.string.settings),
-                            context.getString(R.string.focus_tab),
-                            context.getString(R.string.sr_tab)
-                        )
-                            .forEachIndexed { index, title ->
-                                Tab(
-                                    selected = selectedTab == index,
-                                    enabled = !savingSettings,
-                                    onClick = { selectedTab = index },
-                                    text = { Text(title) }
-                                )
-                            }
-                    }
 
                     when (selectedTab) {
                         4 -> StudyResourcesScreen(onOpenFocus = { selectedTab = 3 })

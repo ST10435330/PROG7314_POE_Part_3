@@ -139,6 +139,14 @@ A credited **The Learning Scientists** retrieval-practice video opens in YouTube
 
 Demonstrate the new tab in both languages, expand each guide, read a reference, open the video, return through biometric unlock when enabled, and use Open Focus. With airplane mode enabled, all guide text and citations should remain available. Also check scrolling with large fonts.
 
+## Interface and navigation
+
+The bottom navigation shows Tasks, Subjects, Focus, Resources and Settings. Screen IDs remain stable when switching tabs, and the resource guide's Open Focus shortcut uses the same timer screen. Labels, task actions and sync details are available in English and isiZulu.
+
+The compact Cloud sync panel keeps pending/rejected/cleanup counts visible. **Details** opens a scrollable dialog containing full sync messages, **Sync now**, attachment-cleanup retry and the existing confirmation flow for discarding rejected changes. Task cards show readable dates and text-labelled priority/status badges. **Mark complete/Reopen** remains visible; each card's three-dot menu contains **Attachments, Edit and Delete**. Date formatting is presentation only; stored/API dates retain their ISO format.
+
+Physical-phone checks should include all five destinations, resource-to-Focus navigation, large fonts, both languages, filter/reset/refresh, task creation/completion/edit/deletion, attachment-dialog opening and the sync Details actions. Test mutations with a disposable task. Live attachment transfers still require the outstanding Firebase Storage setup.
+
 ## Architecture and design
 
 ```mermaid

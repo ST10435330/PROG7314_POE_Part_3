@@ -11,65 +11,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun TaskProgressPanel(
-    tasks: List<StudyTask>,
-    subjects: List<Subject>
-) {
+fun TaskProgressPanel(tasks: List<StudyTask>, subjects: List<Subject>) {
     val context = LocalContext.current
     var expanded by rememberSaveable { mutableStateOf(false) }
     val overall = TaskLogic.progress(tasks)
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                context.getString(R.string.study_progress),
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                context.resources.getQuantityString(
-                    R.plurals.progress_overall, overall.total,
-                    overall.completed, overall.total, overall.percentage
-                )
-            )
-
-            LinearProgressIndicator(
-                progress = { overall.fraction },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (subjects.isNotEmpty()) {
-                TextButton(onClick = { expanded = !expanded }) {
-                    Text(
-                        if (expanded) context.getString(R.string.hide_subject_progress)
-                        else context.getString(R.string.show_subject_progress)
-                    )
+    OutlinedCard(Modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(context.getString(R.string.study_progress), style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f))
+                if (subjects.isNotEmpty()) {
+                    TextButton(onClick = { expanded = !expanded }) {
+                        Text(context.getString(if (expanded) R.string.ui_hide_details else R.string.ui_by_subject))
+                    }
                 }
             }
-
+            Text(context.resources.getQuantityString(R.plurals.progress_overall, overall.total,
+                overall.completed, overall.total, overall.percentage), style = MaterialTheme.typography.bodySmall)
+            LinearProgressIndicator(progress = { overall.fraction }, modifier = Modifier.fillMaxWidth())
             if (expanded) {
                 subjects.sortedBy { it.name.lowercase() }.forEach { subject ->
                     val progress = TaskLogic.progress(tasks, subject.subjectId)
-
-                    Text(
-                        subject.name,
-                        style = MaterialTheme.typography.titleSmall
-                    )
-
-                    Text(
-                        context.resources.getQuantityString(
-                            R.plurals.progress_subject, progress.total,
-                            progress.completed, progress.total, progress.percentage
-                        )
-                    )
-
-                    LinearProgressIndicator(
-                        progress = { progress.fraction },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Text(subject.name, style = MaterialTheme.typography.titleSmall)
+                    Text(context.resources.getQuantityString(R.plurals.progress_subject, progress.total,
+                        progress.completed, progress.total, progress.percentage), style = MaterialTheme.typography.bodySmall)
+                    LinearProgressIndicator(progress = { progress.fraction }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }

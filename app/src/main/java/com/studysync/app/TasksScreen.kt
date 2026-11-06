@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TasksScreen(
     repository: StudyRepository,
@@ -120,11 +121,21 @@ fun TasksScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(context.getString(R.string.my_tasks), style = MaterialTheme.typography.headlineMedium)
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(context.getString(R.string.my_tasks), style = MaterialTheme.typography.headlineMedium)
+                if (!loading && loadError == null) {
+                    Button(enabled = subjects.isNotEmpty() && !saving, onClick = {
+                        editingId = null
+                        saveError = null
+                        showForm = true
+                    }) { Text(context.getString(R.string.add_task)) }
+                }
+            }
         }
 
         when {
@@ -153,28 +164,22 @@ fun TasksScreen(
                     }
 
                     item {
-                        TextButton(
-                            enabled = !saving,
-                            onClick = { showFilters = true }
-                        ) {
-                            Text(context.getString(R.string.filter_and_sort))
-                        }
-                        TextButton(
-                            enabled = !saving,
-                            onClick = {
-                                completionError = null
-                                reloadKey++
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                OutlinedButton(enabled = !saving, onClick = { showFilters = true }) {
+                                    Text(context.getString(R.string.filter_and_sort))
+                                }
+                                TextButton(enabled = !saving, onClick = {
+                                    completionError = null
+                                    reloadKey++
+                                }) { Text(context.getString(R.string.refresh)) }
                             }
-                        ) {
-                            Text(context.getString(R.string.refresh))
+                            Text(context.resources.getQuantityString(R.plurals.tasks_shown, tasks.size,
+                                visibleTasks.size, tasks.size, context.getString(filter.label)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-
-                        Text(
-                            context.resources.getQuantityString(
-                                R.plurals.tasks_shown, tasks.size,
-                                visibleTasks.size, tasks.size, context.getString(filter.label)
-                            )
-                        )
                     }
 
                     if (saving && !showForm && pendingDeleteId == null) {
@@ -182,19 +187,6 @@ fun TasksScreen(
                             LinearProgressIndicator(
                                 modifier = Modifier.fillMaxWidth()
                             )
-                        }
-                    }
-
-                    item {
-                        Button(
-                            enabled = subjects.isNotEmpty() && !saving,
-                            onClick = {
-                                editingId = null
-                                saveError = null
-                                showForm = true
-                            }
-                        ) {
-                            Text(context.getString(R.string.add_task))
                         }
                     }
 
@@ -213,7 +205,8 @@ fun TasksScreen(
                 }
 
                 items(visibleTasks, key = { it.taskId }) { task ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedCard(modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -226,35 +219,24 @@ fun TasksScreen(
                             Text(
                                 subjects.find {
                                     it.subjectId == task.subjectId
-                                }?.name ?: context.getString(R.string.subject_unavailable)
+                                }?.name ?: context.getString(R.string.subject_unavailable),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
                             if (task.description.isNotBlank()) {
-                                Text(task.description)
+                                Text(task.description, style = MaterialTheme.typography.bodyMedium)
                             }
 
-                            Text(context.getString(R.string.task_due, task.dueDate))
+                            TaskMetadata(task, today)
 
-                            Text(
-                                context.getString(R.string.task_priority, priorityText(context, task.priority))
-                            )
-
-                            Text(
-                                context.getString(
-                                    if (task.completed) R.string.completed else R.string.pending
-                                )
-                            )
-
-                            if (TaskLogic.isOverdue(task, today)) {
-                                Text(
-                                    context.getString(R.string.overdue),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-
-                            TextButton(
+                            TaskActionRow(
+                                task = task,
                                 enabled = !saving,
-                                onClick = {
+                                onAttachments = { attachments.openTask(task.taskId) },
+                                onEdit = { editingId = task.taskId; saveError = null; showForm = true },
+                                onDelete = { deleteError = null; pendingDeleteId = task.taskId },
+                                onToggle = {
                                     if (!saving) {
                                         saving = true
                                         completionError = null
@@ -302,12 +284,7 @@ fun TasksScreen(
                                         }
                                     }
                                 }
-                            ) {
-                                Text(
-                                    if (task.completed) context.getString(R.string.reopen_task)
-                                    else context.getString(R.string.mark_complete)
-                                )
-                            }
+                            )
 
                             completionError?.let { (failedId, message) ->
                                 if (failedId == task.taskId) {
@@ -318,36 +295,6 @@ fun TasksScreen(
                                 }
                             }
 
-                            TextButton(
-                                enabled = !saving,
-                                onClick = { attachments.openTask(task.taskId) }
-                            ) { Text(context.getString(R.string.attachment_button)) }
-
-                            Row {
-                                TextButton(
-                                    enabled = !saving,
-                                    onClick = {
-                                        editingId = task.taskId
-                                        saveError = null
-                                        showForm = true
-                                    }
-                                ) {
-                                    Text(context.getString(R.string.edit))
-                                }
-
-                                TextButton(
-                                    enabled = !saving,
-                                    onClick = {
-                                        deleteError = null
-                                        pendingDeleteId = task.taskId
-                                    }
-                                ) {
-                                    Text(
-                                        context.getString(R.string.delete),
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
                         }
                     }
                 }

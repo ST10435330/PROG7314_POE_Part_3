@@ -290,9 +290,9 @@
     <string name="attachment_save_copy_error">Could not save the copy. Please choose a destination again.</string>
     <string name="attachment_open_error">Could not open this attachment. Try saving a copy.</string>
     <string name="attachment_no_viewer">No installed app can open this file. You can save a copy instead.</string>
-    <string name="attachment_denied">Storage access was denied. Check your account, Storage rules and billing setup.</string>
+    <string name="attachment_denied">Access to this attachment was denied. Check your account and storage permissions.</string>
     <string name="attachment_missing">This attachment no longer exists in cloud storage. Refresh the list.</string>
-    <string name="attachment_setup_error">Cloud Storage is not configured for this project. Check the bucket setup.</string>
+    <string name="attachment_setup_error">Attachment storage is not configured. Check the API and private bucket settings.</string>
     <string name="attachment_quota_error">Cloud Storage is unavailable because of a quota or billing restriction.</string>
     <string name="attachment_network_error">A connection is needed for this cloud operation. Check your internet and retry.</string>
     <string name="attachment_cancelled">Attachment operation cancelled. Refresh to check for a completed upload.</string>

@@ -109,7 +109,7 @@ interface StudyApi {
 }
 
 object StudyApiClient {
-    private const val BASE_URL =
+    internal const val BASE_URL =
         "https://prog7314-poe-part-2.onrender.com/api/"
 
     val service: StudyApi by lazy {

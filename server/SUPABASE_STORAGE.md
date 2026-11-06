@@ -65,10 +65,17 @@ or independent cleanup service is claimed. If both a deletion race and the
 compensating storage removal fail, client cleanup/retry or owner intervention
 may still be needed. Keep failed-upload/deletion evidence available for review.
 
-**Android migration is next.** The phone still uses its existing provider until
-that commit adapts the attachment repository and cleanup worker. Firebase Auth,
-Firestore study data and FCM remain in use. Do not claim a completed migration
-until real phone upload/open/export/delete and task cleanup have been verified.
+## Stage 3: Android provider
+
+`ApiAttachmentCloud` sends the Firebase ID token to the existing Render API.
+The attachment repository and cleanup worker both use it. The Firebase Storage
+SDK is removed from Android; no Supabase key is bundled in the APK. Existing
+file picking, private cache, FileProvider export and SQLite cleanup intents stay
+in place. Refresh checks remote metadata and retry keeps the same upload UUID.
+
+Phone upload/open/export/delete, account isolation and task-deletion cleanup
+still require live verification. Startup readiness and synthetic HTTP tests
+alone do not demonstrate the completed feature.
 
 ## Verification
 

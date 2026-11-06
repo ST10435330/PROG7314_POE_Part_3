@@ -188,7 +188,8 @@ test("invalid names IDs types empty files and compressed uploads are rejected", 
   const f = await start(t);
   for (const options of [ { name: "" }, { name: "%zz" }, { name: "../Notes.pdf" },
     { name: "a".repeat(151) }, { name: "%00.pdf" }, { type: "image/png" },
-    { type: "text/plain" }, { bytes: Buffer.alloc(0) } ]) {
+    { type: "text/plain" }, { bytes: Buffer.alloc(0) },
+    { bytes: Buffer.from([0xa5, 0xd0, 0xc4, 0xc6, 0xad]) } ]) {
     assert.equal((await f.send("PUT", path, options)).status, 400);
   }
   assert.equal((await f.send("PUT", path.replace(id, "bad-id"))).status, 400);

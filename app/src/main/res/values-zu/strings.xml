@@ -287,9 +287,9 @@
     <string name="attachment_save_copy_error">Ikhophi ayilondolozekanga. Sicela ukhethe indawo futhi.</string>
     <string name="attachment_open_error">Leli fayela alivuleki. Zama ukulondoloza ikhophi.</string>
     <string name="attachment_no_viewer">Alukho uhlelo olufakiwe olungavula leli fayela. Ungalondoloza ikhophi esikhundleni salokho.</string>
-    <string name="attachment_denied">Ukufinyelela endaweni yokugcina amafayela kunqatshiwe. Hlola i-akhawunti yakho, imithetho ye-Storage nokusethwa kokukhokha.</string>
+    <string name="attachment_denied">Ukufinyelela kuleli fayela kunqatshiwe. Hlola i-akhawunti yakho nezimvume zokugcina amafayela.</string>
     <string name="attachment_missing">Leli fayela alisekho endaweni yokugcina amafayela efwini. Vuselela uhlu.</string>
-    <string name="attachment_setup_error">I-Cloud Storage ayikasethelwa le phrojekthi. Hlola ukusethwa kwebhakede lokugcina.</string>
+    <string name="attachment_setup_error">Indawo yokugcina amafayela ayikasethwa. Hlola i-API nebhakede eliyimfihlo.</string>
     <string name="attachment_quota_error">I-Cloud Storage ayitholakali ngenxa yomkhawulo wokusetshenziswa noma wokukhokha.</string>
     <string name="attachment_network_error">Lesi senzo sasefwini sidinga ukuxhumeka. Hlola i-inthanethi yakho bese uzama futhi.</string>
     <string name="attachment_cancelled">Isenzo sefayela sikhanseliwe. Vuselela ukuze uhlole ukuthi ukuthumela kuqediwe yini.</string>

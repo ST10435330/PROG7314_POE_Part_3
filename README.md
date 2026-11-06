@@ -46,7 +46,7 @@ Choose **English** or **isiZulu** in **Settings → Language**. The choice saves
 
 English text is in `app/src/main/res/values/strings.xml`, with isiZulu translations in `values-zu/strings.xml`. User-entered subjects, titles and descriptions remain as entered. API values and stored study data keep their existing format. Android and Google control their own system screens.
 
-Language tests cover preferences saved to disk, existing settings, invalid language fallback, task-default restoration, translation coverage, format arguments, AppCompat switching on API 28 and 33, background resources and previously saved sync messages. Run with JDK 17, Android SDK 35 and your real `app/google-services.json`:
+Language tests cover preferences saved to disk, existing settings, invalid language fallback, task-default restoration, translation coverage, format arguments, AppCompat switching on API 28 and 33, background resources and previously saved sync messages. Run with JDK 17, Android SDK 36 and your real `app/google-services.json`:
 
 ```sh
 sh ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
@@ -68,7 +68,7 @@ Completed sessions are saved automatically in the private local `studysync_focus
 
 The timer survives tab changes, rotation, language switching and the biometric lock screen. Signing out discards an unfinished timer. Completed history survives closing and reopening the app. Active timers are held in memory: force-stopping the app, process termination or restarting the phone discards unfinished sessions. No foreground service or completion notification is added. After background sleep, completion is recorded when the app next runs, using the calculated finish time. If saving fails, retry before resetting the timer.
 
-With JDK 17, Android SDK 35 and your real `app/google-services.json`, run:
+With JDK 17, Android SDK 36 and your real `app/google-services.json`, run:
 
 ```sh
 sh ./gradlew :app:testDebugUnitTest --tests 'com.studysync.app.Focus*'
@@ -79,57 +79,39 @@ Tests cover elapsed-time calculations, pausing, resuming, resetting, cancelling,
 
 For a short demonstration, select 1 minute and a subject, start and pause the session, then resume it. Leave the app in the background until it finishes and return through biometric verification if enabled. Show the completed history entry, reopen the app to show it remains, then cancel a new session and confirm history has not grown. Switch between English and isiZulu in Settings and return to Focus to show the translated screen. A second account should have its own history.
 
-## Part 3: Commit 10 private task attachments
+## Part 3: private task attachments using Supabase
 
-Open **Tasks → Attachments** on an existing task. Add PDF, JPEG, PNG or WebP files up to **5 MiB (5,242,880 bytes)** each. The system document picker grants access only to the selected file. The app checks its actual size and basic file signature, then uploads with progress. Failed uploads can retry the same generated ID. Refresh checks uploads whose result was uncertain after cancellation or a lost connection.
+Open a task's three-dot menu and choose **Attachments**. Add PDF, JPEG, PNG or WebP files up to **5 MiB (5,242,880 bytes)**. The picker grants access only to the chosen file. The app checks file signatures, MIME types, names and actual sizes before sending raw bytes to the existing Render API with a Firebase ID token.
 
-**Open** downloads through the authenticated Firebase Storage SDK to private app cache, then gives a viewer temporary read permission through an unexported FileProvider. **Save copy** downloads the same way and lets the student choose an export destination. No Firebase download-token URLs are generated or stored by the app. An exported copy, or a copy retained by a viewer, is outside StudySync's control. Sign-out cancels transfers, clears attachment UI state, removes other-account cache files and revokes cache URI grants. Picker results wait for biometric verification when protection is enabled.
+Only attachment file bytes use **Supabase Storage**. Firebase Authentication still supplies Google sign-in, Firestore still stores subjects/tasks and attachment manifests, and FCM still sends notifications. No Supabase secret is included in Android. The API verifies the Firebase user and scopes metadata and file paths to that user. See [server configuration and endpoint contracts](server/SUPABASE_STORAGE.md).
 
-### Firebase setup and security
+Uploads keep the same UUID on retry and finish only after the API acknowledges the expected metadata. Transfer progress stops at 99% until acknowledgement. One 401 response refreshes the Firebase token and retries once. Other failures do not silently retry. Missing files, missing API setup, unavailable storage, file conflicts and account/session errors have separate English/isiZulu messages. URLs do not redirect authenticated requests to another host.
 
-1. Keep the real Android configuration at ignored `app/google-services.json`. It must match `com.studysync.app`, the existing Authentication project and the Storage bucket. Never add service-account credentials to Android or commit Firebase configuration JSON.
-2. Provision/verify the bucket in Firebase Console. Cloud Storage currently requires the **Blaze billing plan**; linking billing and enabling the bucket are manual project-owner actions. Nothing in this change upgrades billing or provisions a bucket.
-3. Review `storage.rules`, then publish it manually to the intended bucket. The root `firebase.json` configures **Storage rules only**. No rules are automatically deployed by the app, tests or CI.
-4. The rules read task existence from the existing default Firestore database at `users/{uid}/tasks/{taskId}`. Firebase will request Storage-to-Firestore permissions when these cross-service rules are first published; enable those permissions deliberately. The app does not add a Firestore client or change the REST API.
-5. Keep the bucket private: do not grant public IAM access, use test-mode allow-all rules, or distribute tokenized download URLs. A bucket name in the Android JSON alone does not prove the bucket or live rules are ready.
+**Open** and **Save copy** download through the authenticated API into private cache. Streaming enforces size and MIME expectations; the repository also checks the file signature before use. Open grants temporary read-only FileProvider access; Save copy uses a user-selected export destination. Exported/viewer copies are outside StudySync's control. Sign-out cancels transfers, clears attachment UI state, removes other-account cache files and revokes cache URI grants. Picker results still wait for biometric verification.
 
-Files use `users/{uid}/tasks/{taskId}/attachments/{uuid}`. Rules require the Firebase UID to match the owner for get, list and delete. Creates additionally require an existing task, an approved MIME type, a nonempty file within the size limit, and a bounded display name. Object overwrites and client metadata updates are denied. Owner deletion remains possible after the task has disappeared so cleanup can finish. Rules enforce type metadata; they cannot inspect file bytes. Basic client signature checking is not antivirus scanning.
+### Offline behavior and cleanup
 
-[Firebase Storage billing requirements](https://firebase.google.com/docs/storage/faqs-storage-changes-announced-sept-2024) · [Cross-service rules](https://firebase.google.com/docs/storage/security/rules-conditions)
+- A task created offline must finish syncing before a file can be uploaded.
+- Attachment metadata is cached per account. A previously downloaded file can open offline for that account. A failed list request keeps the cached state and error visible.
+- New uploads, uncached downloads and remote deletion need a connection. There is no background upload queue or process-death upload resumption. Retry while the dialog remains open; Refresh reconciles acknowledged uploads.
+- Task deletion keeps the existing SQLite cleanup intent and waits for the task DELETE acknowledgement. The network-constrained cleanup worker now uses the attachment API to list/delete remaining Supabase objects. Failures retry separately from normal study-data sync.
+- Files/manifests can still be cleaned up after the parent task is gone. Deleted UUID tombstones remain in Firestore. There is no independent cloud cleanup service or distributed transaction; client retry or owner intervention may be needed after combined failures. Restored tasks are checked before client cleanup begins.
+- This provider switch does not change the SQLite schema, saved settings or focus history. It does not copy or delete any historical Firebase Storage objects; handle those separately if any exist.
 
-### Offline behavior and deletion cleanup
+### Configuration and verification
 
-- A task created offline must reach the cloud before a file can be attached.
-- Previously fetched attachment information is cached per account. The dialog identifies cached information; an empty cache does not prove there are no remote attachments. A previously downloaded private file can open offline for the same signed-in user.
-- New uploads, uncached downloads and individual cloud deletions require a connection. There is no background upload queue. Retry uploads from the dialog while it remains open, or refresh to discover an upload that completed before cancellation.
-- Deleting a task still removes it locally and queues the existing API DELETE. The same SQLite transaction records a cleanup intent and removes cached attachment metadata. Local downloaded files are cleared too.
-- Only acknowledgement of the cloud task DELETE makes cleanup eligible. Cleanup retains the exact deletion operation ID, so an old worker cannot acknowledge a newer deletion. A separate network-constrained WorkManager job removes the task's Storage objects and retries failures without blocking normal task sync. Pending cleanup and retry are shown in the sync status panel. An already missing object is treated as deleted. A task restored by another device keeps its attachments.
-- SQLite version **2 → 3** adds only `task_attachments` and `attachment_cleanup`; existing cached records, operation IDs, payloads, rejection reasons, sequence values and sync status are preserved. Version 1 installations upgrade through the existing version 2 column additions. Focus history and settings are unchanged.
+Keep `task-attachments` private in Supabase and keep `SUPABASE_SECRET_KEY` only in Render's environment. The API startup log should confirm the private bucket is ready. The Android Firebase Storage SDK is removed; Google sign-in and FCM still need the existing ignored `app/google-services.json`. The old `storage.rules` and emulator fixtures describe the retired Firebase Storage implementation and do not protect Supabase files.
 
-Cleanup is eventual and requires the same user to sign in again if they signed out. Uninstalling before cleanup completes can leave private orphaned files. Firestore and Storage do not form one atomic transaction; cross-device upload/deletion races cannot be given a server-wide cleanup guarantee by an app-driven worker. Guaranteed independent cleanup would need a server-side trigger/job. Active uploads are not resumed across process termination; refresh reconciles any completed cloud objects. Export failures may leave a partial user-selected copy which the student can remove.
-
-### Attachment tests
-
-Android checks use JDK 17, Android SDK 35 and your ignored Firebase configuration:
+Run with JDK 17+, Android SDK 36 and your real Android Firebase configuration:
 
 ```sh
-sh ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+sh ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+npm test --prefix server
 ```
 
-The new tests cover signatures, MIME mismatches, exact/oversize boundaries, cancellation, private FileProvider paths, temporary read-only grants, account switching, picker results, upload retries, offline caching, partial download removal, migration preservation and atomic cleanup/rollback. The existing translation test checks every new English/isiZulu resource and format argument.
+HTTP tests use MockWebServer, synthetic ID tokens and injected account callbacks. They exercise authentication refresh, raw uploads, UTF-8 names, metadata validation, downloads, truncated/oversized responses, cancellation, account changes, localised errors and redirect rejection. Existing repository/worker tests cover offline caching, cleanup, migration and private file handling. These checks do not prove live storage operations.
 
-Rules tests use **Node 22 and JDK 21** (for the current Firestore emulator). They require no real Firebase login or credentials:
-
-```sh
-npm ci --prefix tests/storage
-npm test --prefix tests/storage
-```
-
-`firebase.emulators.json` runs only local Firestore (`127.0.0.1:8085`) and Storage (`127.0.0.1:9199`) with the `demo-studysync` project. The test-only Firestore rules deny client access; fixtures seed task documents through the emulator test library's rules-disabled context. This configuration is separate from the Storage-only deployment configuration. The test dependency overrides keep Firebase's shared app registries aligned and use a patched gRPC transport. Test tooling is not bundled into Android. CI runs the same emulator tests without project credentials. The locked development tools currently have 16 moderate npm audit advisories inherited from Firebase CLI dependencies; no high or critical advisories remain after the gRPC override. These advisories are outside the Android runtime. They are recorded rather than forcing incompatible major dependency replacements.
-
-Rules tests exercise owner upload/list/download/delete, denial for signed-out users and a second user, task existence, size/type/metadata restrictions, overwrite denial and cleanup after parent deletion. Rules validate MIME metadata rather than bytes; intentionally arbitrary image bytes in a rules test do not replace Android signature tests.
-
-For the phone demonstration, use two Google accounts and both languages: upload/open/export a small PDF and image, reject an unsupported or oversized file, confirm attachment deletion, and verify the second account has no access. Delete an attached task offline, reconnect, and show task sync and eventual cleanup. A suitable viewer app is needed for **Open**. Local tests and emulator results do not prove the live bucket, deployed IAM/rules, or billing setup work; those require a separately authorized live test.
+**Physical-phone verification remains required:** upload/open/export/delete a small PDF and image, test both languages and a second Google account, and confirm the files appear/disappear in Supabase. In Firestore, show the account-scoped `attachmentGroups` manifests. Delete an attached task offline, reconnect and show eventual cloud-file cleanup. Keep screenshots/video evidence of the results. The Supabase Free plan can pause inactive projects, so check availability before demonstration and marking.
 
 ## Study Resources
 
@@ -145,7 +127,7 @@ The bottom navigation shows Tasks, Subjects, Focus, Resources and Settings. Scre
 
 The compact Cloud sync panel keeps pending/rejected/cleanup counts visible. **Details** opens a scrollable dialog containing full sync messages, **Sync now**, attachment-cleanup retry and the existing confirmation flow for discarding rejected changes. Task cards show readable dates and text-labelled priority/status badges. **Mark complete/Reopen** remains visible; each card's three-dot menu contains **Attachments, Edit and Delete**. Date formatting is presentation only; stored/API dates retain their ISO format.
 
-Physical-phone checks should include all five destinations, resource-to-Focus navigation, large fonts, both languages, filter/reset/refresh, task creation/completion/edit/deletion, attachment-dialog opening and the sync Details actions. Test mutations with a disposable task. Live attachment transfers still require the outstanding Firebase Storage setup.
+Physical-phone checks should include all five destinations, resource-to-Focus navigation, large fonts, both languages, filter/reset/refresh, task creation/completion/edit/deletion, attachment-dialog opening and the sync Details actions. Test mutations with a disposable task. Live attachment transfers require the deployed Supabase attachment API and physical-phone verification.
 
 ## Architecture and design
 
@@ -156,6 +138,7 @@ flowchart TD
     A -->|HTTPS and bearer token| C["Express REST API on Render"]
     C -->|Verify ID token| B
     C -->|Firebase Admin SDK| D["Cloud Firestore"]
+    C -->|Private attachment bytes| F["Supabase Storage"]
     A -->|Save device preferences| E["Local settings"]
 ```
 
@@ -185,7 +168,7 @@ Every data endpoint requires `Authorization: Bearer <Firebase ID token>`. The ro
 
 ## Run the Android app
 
-Requirements: Android Studio, JDK 17, Android SDK 35 and an Android device running Android 8.0/API 26 or later with Google sign-in available.
+Requirements: Android Studio, JDK 17, Android SDK 36 and an Android device running Android 8.0/API 26 or later with Google sign-in available.
 
 ```powershell
 git clone https://github.com/ST10435330/PROG7314_POE_Part_2.git

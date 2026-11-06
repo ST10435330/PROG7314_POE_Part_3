@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="attachment_api_unavailable">Attachment storage is temporarily unavailable. Try again later.</string>
+    <string name="attachment_api_conflict">This attachment changed or was deleted. Refresh the list, or choose the file again to add a new attachment.</string>
+</resources>

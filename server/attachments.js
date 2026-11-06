@@ -9,11 +9,11 @@ const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const fail = (status, code, message) => { throw new ApiError(status, code, message); };
 
 function signature(bytes) {
-  if (bytes.subarray(0, 5).toString("ascii") === "%PDF-") return TYPES[0];
+  if (bytes.subarray(0, 5).equals(Buffer.from("%PDF-"))) return TYPES[0];
   if (bytes.subarray(0, 3).equals(Buffer.from([255, 216, 255]))) return TYPES[1];
   if (bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return TYPES[2];
-  if (bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
-      bytes.subarray(8, 12).toString("ascii") === "WEBP") return TYPES[3];
+  if (bytes.length >= 12 && bytes.subarray(0, 4).equals(Buffer.from("RIFF")) &&
+      bytes.subarray(8, 12).equals(Buffer.from("WEBP"))) return TYPES[3];
   return null;
 }
 

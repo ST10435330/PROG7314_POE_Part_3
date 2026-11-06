@@ -44,7 +44,6 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
     implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-storage")
     implementation("com.google.firebase:firebase-messaging")
 
     implementation("androidx.credentials:credentials:1.3.0")
@@ -69,5 +68,4 @@ dependencies {
     // Verify sync requests against a local HTTP test server.
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
-    implementation("com.google.firebase:firebase-storage")
 }

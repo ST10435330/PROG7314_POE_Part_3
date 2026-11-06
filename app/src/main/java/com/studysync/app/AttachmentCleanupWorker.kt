@@ -74,7 +74,7 @@ class AttachmentCleanupWorker(context: Context, parameters: WorkerParameters) : 
         if (store.attachmentCleanupTasks().isEmpty()) return Result.success()
         var cloud: AttachmentCloud? = null
         return try {
-            val client = FirebaseAttachmentCloud(uid)
+            val client = ApiAttachmentCloud(uid)
             cloud = client
             val api = ApiStudyRepository(uid)
             val files = AttachmentFiles(applicationContext, uid)

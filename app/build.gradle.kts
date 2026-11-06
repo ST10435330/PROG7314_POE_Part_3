@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.studysync.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.studysync.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }
@@ -68,4 +68,6 @@ dependencies {
 
     // Verify sync requests against a local HTTP test server.
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+
+    implementation("com.google.firebase:firebase-storage")
 }

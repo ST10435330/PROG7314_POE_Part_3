@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModelProvider
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -13,8 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -30,16 +31,16 @@ class MainActivity : AppCompatActivity() {
             AppLanguage.apply(AppLanguage.saved(this))
         }
         PushNotifications.createChannel(this)
-        enableEdgeToEdge()
+        // Match system-bar icons to the app's light palette, including on dark-mode devices.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
 
         Log.d("StudySync", "Main screen created")
 
         setContent {
-            MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = Color(0xFF2855B8)
-                )
-            ) {
+            StudySyncTheme {
                 AuthScreen(
                     focusSessions = ViewModelProvider(this@MainActivity)[FocusSessionsViewModel::class.java],
                     attachments = ViewModelProvider(this@MainActivity)[AttachmentsViewModel::class.java]
@@ -107,7 +108,15 @@ fun StudySyncScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(context.getString(R.string.app_name)) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StudySyncBrandMark(32.dp)
+                        Text(context.getString(R.string.app_name), style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                 actions = {
                     TextButton(
                         enabled = !savingSettings,

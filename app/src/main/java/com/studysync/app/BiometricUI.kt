@@ -49,6 +49,8 @@ fun BiometricLockScreen(
         ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        StudySyncBrandMark(56.dp)
+
         Text(
             context.getString(R.string.biometric_locked),
             style = MaterialTheme.typography.headlineMedium

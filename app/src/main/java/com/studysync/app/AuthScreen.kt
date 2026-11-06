@@ -277,6 +277,9 @@ private fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        StudySyncBrandMark(72.dp)
+        Spacer(Modifier.height(20.dp))
+
         Text(
             context.getString(R.string.app_name),
             style = MaterialTheme.typography.headlineLarge

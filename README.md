@@ -11,7 +11,9 @@ Native Android study planner for **PROG7314 Part 3**, version **2.0.0** (version
 
 **Final demonstration video:** [Watch the StudySync application and backend demonstration](https://youtu.be/2jKkpYxGkFw)
 
-**Signed APK:** Built, signature verified and installed on a physical Huawei phone. Upload `app-release.apk` to the final GitHub Release and link that release here before submission. Google Play publication has not been claimed.
+**Signed production APK:** [Download StudySync](https://github.com/ST10435330/PROG7314_POE_Part_3/releases/download/Final-POE/app-release.apk)
+
+**Final submission:** [Final POE release](https://github.com/ST10435330/PROG7314_POE_Part_3/releases/tag/Final-POE)
 
 ## Application screenshots
 

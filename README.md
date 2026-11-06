@@ -161,7 +161,12 @@ Completed focus history is local and account-separated; it is not cloud-synchron
 
 ## Contributions and declarations
 
-The prototype README recorded Antonio Bechev (ST10435330) for Android/interface/integration work and Sive Sikutshwa (ST10061605) for the custom API and Firestore. Final development and teammate changes are recorded in the preserved commit and merge history.
+StudySync was developed collaboratively by Antonio Bechev and Sive Sikutshwa.
+
+| Group member | Contributions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --- |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Antonio Bechev — ST10435330** | Developed the Android application foundation, Google SSO integration, subject and task management, filtering, sorting and progress tracking. Implemented biometric authentication, SQLite offline storage, automatic synchronisation, Firebase Cloud Messaging and the Study Resources feature. Refined the interface, branding and navigation; configured GitHub Actions; and completed final integration, debugging, physical-device testing, production signing, screenshots, demonstration video and submission documentation. |
+| **Sive Sikutshwa — ST10061605** | Developed the custom REST API and Cloud Firestore database for Part 2. For Part 3, implemented English and isiZulu language support with saved preferences, the focus timer and completed-session history, and task attachment functionality. Also contributed the Supabase storage integration for private task attachments.                                                                                                                                                                                                      |
 
 See [release notes](RELEASE_NOTES.md) and the [AI assistance declaration](AI_DECLARATION.md).
 

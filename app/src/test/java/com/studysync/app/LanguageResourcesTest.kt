@@ -8,27 +8,31 @@ import org.w3c.dom.Element
 
 class LanguageResourcesTest {
     private fun strings(qualifier: String): Map<String, String> {
-        val file = File("src/main/res/$qualifier/strings.xml")
-        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
-        val nodes = document.documentElement.childNodes
         val result = linkedMapOf<String, String>()
-        for (index in 0 until nodes.length) {
-            val node = nodes.item(index) as? Element ?: continue
-            if (node.getAttribute("translatable") == "false") continue
-            val name = node.getAttribute("name")
-            if (node.tagName == "plurals") {
-                val items = node.getElementsByTagName("item")
-                for (itemIndex in 0 until items.length) {
-                    val item = items.item(itemIndex) as Element
-                    val key = "$name/${item.getAttribute("quantity")}"
-                    assertFalse("Duplicate resource: $key", result.containsKey(key))
-                    assertTrue("Empty resource: $key", item.textContent.isNotBlank())
-                    result[key] = item.textContent
+        // Check every values XML file, including feature-specific string files.
+        val files = requireNotNull(File("src/main/res/$qualifier").listFiles { _, name -> name.endsWith(".xml") })
+        for (file in files.sortedBy { it.name }) {
+            val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
+            val nodes = document.documentElement.childNodes
+            for (index in 0 until nodes.length) {
+                val node = nodes.item(index) as? Element ?: continue
+                if (node.tagName !in setOf("string", "plurals")) continue
+                if (node.getAttribute("translatable") == "false") continue
+                val name = node.getAttribute("name")
+                if (node.tagName == "plurals") {
+                    val items = node.getElementsByTagName("item")
+                    for (itemIndex in 0 until items.length) {
+                        val item = items.item(itemIndex) as Element
+                        val key = "$name/${item.getAttribute("quantity")}"
+                        assertFalse("Duplicate resource: $key", result.containsKey(key))
+                        assertTrue("Empty resource: $key", item.textContent.isNotBlank())
+                        result[key] = item.textContent
+                    }
+                } else {
+                    assertFalse("Duplicate resource: $name", result.containsKey(name))
+                    assertTrue("Empty resource: $name", node.textContent.isNotBlank())
+                    result[name] = node.textContent
                 }
-            } else {
-                assertFalse("Duplicate resource: $name", result.containsKey(name))
-                assertTrue("Empty resource: $name", node.textContent.isNotBlank())
-                result[name] = node.textContent
             }
         }
         return result

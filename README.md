@@ -131,6 +131,14 @@ Rules tests exercise owner upload/list/download/delete, denial for signed-out us
 
 For the phone demonstration, use two Google accounts and both languages: upload/open/export a small PDF and image, reject an unsupported or oversized file, confirm attachment deletion, and verify the second account has no access. Delete an attached task offline, reconnect, and show task sync and eventual cleanup. A suitable viewer app is needed for **Open**. Local tests and emulator results do not prove the live bucket, deployed IAM/rules, or billing setup work; those require a separately authorized live test.
 
+## Study Resources
+
+The **Study Resources** tab provides offline English/isiZulu guides for active recall, spaced practice, interleaving and self-explanation. Each guide includes practical study prompts, a research citation and a DOI link. StudySync examples are adaptations, rather than quotations or guaranteed schedules. Original research references are in English; opening them requires internet access and some publisher pages may restrict full-text access.
+
+A credited **The Learning Scientists** retrieval-practice video opens in YouTube or a browser when selected. It is an external English video, not an embedded player, and needs internet access. The creator lists it at https://www.learningscientists.org/videos. **Open Focus** moves to the existing timer without starting a session automatically. Missing or blocked link handlers show a translated error.
+
+Demonstrate the new tab in both languages, expand each guide, read a reference, open the video, return through biometric unlock when enabled, and use Open Focus. With airplane mode enabled, all guide text and citations should remain available. Also check scrolling with large fonts.
+
 ## Architecture and design
 
 ```mermaid

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sr_tab">Study Resources</string>
+    <string name="sr_title">Build better study habits</string>
+    <string name="sr_intro">Choose a guide and adapt the examples to your course. Guides work offline. References and the video open online in English.</string>
+    <string name="sr_read">Show steps and reference</string>
+    <string name="sr_hide">Hide guide</string>
+    <string name="sr_steps">Try this</string>
+    <string name="sr_reference">Research reference</string>
+    <string name="sr_reference_button">Open reference</string>
+    <string name="sr_link_error">Could not open this link. Check that a browser or YouTube is available, then try again.</string>
+    <string name="sr_recall_title">Active recall</string>
+    <string name="sr_recall_summary">Test what you can remember before looking at your notes.</string>
+    <string name="sr_recall_steps">1. Read a short section and close your notes.\n\n2. Write three questions and answer them from memory.\n\n3. Check the answers and correct gaps. Try those questions again in a later session.</string>
+    <string name="sr_spacing_title">Spaced practice</string>
+    <string name="sr_spacing_summary">Return to material across several study sessions.</string>
+    <string name="sr_spacing_steps">1. Split a topic into small sections.\n\n2. Plan reviews on different days, for example tomorrow, in three days and next week.\n\n3. Start each review with a short self-test. Adjust the gaps to your deadline.</string>
+    <string name="sr_mix_title">Interleaving</string>
+    <string name="sr_mix_summary">Mix related problem types after learning the basic methods.</string>
+    <string name="sr_mix_steps">1. Work through an example of each method first.\n\n2. Mix a few older problem types into your practice.\n\n3. Before solving each problem, explain which method fits and why.</string>
+    <string name="sr_explain_title">Self-explanation</string>
+    <string name="sr_explain_summary">Explain why a worked example uses each step.</string>
+    <string name="sr_explain_steps">1. Choose a worked example from your course.\n\n2. Describe each step in your own words and connect it to a rule or principle.\n\n3. Solve a similar problem without copying the example, then check your reasoning.</string>
+    <string name="sr_video_title">Watch a study guide</string>
+    <string name="sr_video_info">Learn how retrieval practice works. This English video opens in YouTube or your browser and needs internet access.</string>
+    <string name="sr_video_credit">The Learning Scientists: Retrieval Practice: A video for Students. Linked from learningscientists.org/videos.</string>
+    <string name="sr_video_button">Watch on YouTube</string>
+    <string name="sr_focus_title">Put a guide into practice</string>
+    <string name="sr_focus_info">Choose one task, set a timer in Focus and try a strategy while you study. Take a break when you need one.</string>
+    <string name="sr_focus_button">Open Focus</string>
+</resources>

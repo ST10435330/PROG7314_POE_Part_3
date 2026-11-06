@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sr_tab">Izinsiza zokufunda</string>
+    <string name="sr_title">Yakha imikhuba engcono yokufunda</string>
+    <string name="sr_intro">Khetha umhlahlandlela bese uvumelanisa izibonelo nesifundo sakho. Imihlahlandlela iyasebenza ngaphandle kwe-inthanethi. Imithombo nevidiyo kuvuleka ku-inthanethi ngesiNgisi.</string>
+    <string name="sr_read">Bonisa izinyathelo nomthombo</string>
+    <string name="sr_hide">Fihla umhlahlandlela</string>
+    <string name="sr_steps">Kuzame lokhu</string>
+    <string name="sr_reference">Umthombo wocwaningo</string>
+    <string name="sr_reference_button">Vula umthombo</string>
+    <string name="sr_link_error">Lesi sixhumanisi asivulekanga. Hlola ukuthi isiphequluli noma i-YouTube iyatholakala, bese uzama futhi.</string>
+    <string name="sr_recall_title">Ukuzikhumbuza okufundile</string>
+    <string name="sr_recall_summary">Hlola lokho ongakukhumbula ngaphambi kokubheka amanothi akho.</string>
+    <string name="sr_recall_steps">1. Funda ingxenye emfushane bese uvala amanothi akho.\n\n2. Bhala imibuzo emithathu bese uyiphendula ngalokho okukhumbulayo.\n\n3. Hlola izimpendulo bese ulungisa okushodayo. Zama leyo mibuzo futhi ngesikhathi esilandelayo sokufunda.</string>
+    <string name="sr_spacing_title">Ukufunda ngezikhathi ezihlukene</string>
+    <string name="sr_spacing_summary">Buyela kokuqukethwe ngezikhathi eziningana zokufunda.</string>
+    <string name="sr_spacing_steps">1. Hlukanisa isihloko sibe izingxenye ezincane.\n\n2. Hlela ukubuyekeza ngezinsuku ezihlukene, isibonelo kusasa, ezinsukwini ezintathu nangesonto elizayo.\n\n3. Qala ukubuyekeza ngokuzihlola okufushane. Lungisa izikhawu ngokwesikhathi sakho sokugcina.</string>
+    <string name="sr_mix_title">Ukuxuba izinhlobo zemibuzo</string>
+    <string name="sr_mix_summary">Xuba izinhlobo zezinkinga ezihlobene ngemva kokufunda izindlela eziyisisekelo.</string>
+    <string name="sr_mix_steps">1. Qala ngokusebenza ngesibonelo sendlela ngayinye.\n\n2. Faka izinhlobo ezimbalwa zemibuzo emidala ekuzilolongeni kwakho.\n\n3. Ngaphambi kokuxazulula inkinga ngayinye, chaza ukuthi iyiphi indlela efanele nokuthi kungani.</string>
+    <string name="sr_explain_title">Ukuzichazela okufundayo</string>
+    <string name="sr_explain_summary">Chaza ukuthi kungani isibonelo sisebenzisa isinyathelo ngasinye.</string>
+    <string name="sr_explain_steps">1. Khetha isibonelo esixazululiwe esifundweni sakho.\n\n2. Chaza isinyathelo ngasinye ngamazwi akho bese usihlobanisa nomthetho noma isimiso.\n\n3. Xazulula inkinga efanayo ngaphandle kokukopisha isibonelo, bese uhlola indlela ocabange ngayo.</string>
+    <string name="sr_video_title">Buka umhlahlandlela wokufunda</string>
+    <string name="sr_video_info">Funda ukuthi ukuzikhumbuza okufundile kusebenza kanjani. Le vidiyo yesiNgisi ivuleka ku-YouTube noma esipheqululini sakho futhi idinga i-inthanethi.</string>
+    <string name="sr_video_credit">I-The Learning Scientists: Retrieval Practice: A video for Students. Isixhumanisi sivela ku-learningscientists.org/videos.</string>
+    <string name="sr_video_button">Buka ku-YouTube</string>
+    <string name="sr_focus_title">Sebenzisa umhlahlandlela</string>
+    <string name="sr_focus_info">Khetha umsebenzi owodwa, usethe isibali-sikhathi kuthebhu yokugxila bese uzama isu lapho ufunda. Thatha ikhefu uma ulidinga.</string>
+    <string name="sr_focus_button">Vula isikhathi sokugxila</string>
+</resources>

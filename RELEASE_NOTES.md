@@ -31,6 +31,6 @@ Google SSO, subject/task management, due dates, priorities, filters, sorting, co
 
 ### Verification and publication status
 
-The developer reported successful signed-release physical-phone testing on 6 November 2026. The APK signature was verified with apksigner. Automated results remain available through GitHub Actions; the final commit must have passing checks before submission.
+We have reported successful signed-release physical-phone testing on 6 November 2026. The APK signature was verified with apksigner. Automated results remain available through GitHub Actions; the final commit must have passing checks before submission.
 
-The final narrated video, GitHub Release APK upload and annotated Final-POE tag are pending. This document does not claim Google Play publication. Known operational limits are documented in README.md.
+The final narrated video has been uploaded and provided via a YouTube link in the ReadMe file.
